@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 #any binary files
-.bin
+*.bin
 
 # C extensions
 *.so

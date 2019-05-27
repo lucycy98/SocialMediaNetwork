@@ -74,6 +74,7 @@ class MainApp(object):
             cherrypy.session['password'] = password
             getSigningKey()
             test_success = testPublicKey()
+            reportUser()
             if test_success > 0:
                 print("testing error") #todo: deal with errors
                 raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
@@ -102,6 +103,34 @@ class MainApp(object):
 ###
 ### Functions only after here
 ###
+
+def reportUser():
+    headers = createAuthorisedHeader()
+    url = "http://cs302.kiwi.land/api/report"
+    signing_key = cherrypy.session.get("signing_key")
+    pubkey = signing_key.verify_key
+    pubkey_hex = pubkey.encode(encoder=nacl.encoding.HexEncoder)
+    pubkey_hex_str = pubkey_hex.decode('utf-8')
+    connection_address = "127.0.0.1:8000"
+    connection_location = "2"
+
+    payload = {
+        "connection_address" :connection_address,
+	    "connection_location" : connection_location,
+        "incoming_pubkey": pubkey_hex_str
+    }
+
+    JSON_object = postJson(payload, headers, url)
+    print(JSON_object)
+    response = JSON_object.get("response", None)
+    if response == "ok":
+        print("reported successfully.")
+        return 0
+    else:
+        print ("error in reporting")
+        return 1
+    
+    
 
 '''
 tests whether the user has provided a valid public key associated 

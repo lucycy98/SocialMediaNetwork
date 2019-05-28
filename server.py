@@ -10,6 +10,7 @@ import nacl.secret
 import time
 import os.path
 import loginserver
+import database
 
 class MainApp(object):
 
@@ -47,27 +48,32 @@ class MainApp(object):
         Page = open("static/login.html")
         return Page
         
+      
+    ################################################### INTERNAL API ####################################################
+
     # LOGGING IN AND OUT
     @cherrypy.expose
     def signin(self, username=None, password=None):
         """Check their name and password and send them either to the main page, or back to the main login screen."""
         logserv = loginserver.loginserver(username, password)
-        error = logserv.authoriseUserLogin()
+        db = database.databases(username, password)
+        error = db.checkUsernamePassword()
 
         if error == 0:
-            cherrypy.session['username'] = username
-            cherrypy.session['password'] = password
             success = logserv.getSigningKey()
             if success > 0:
                 print("testing error") #todo: deal with errors
                 raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
             logserv.reportUser("online")
+            cherrypy.session['username'] = username
+            cherrypy.session['password'] = password
             cherrypy.session["logserv"] = logserv
+            cherrypy.session["database"] = db
+            logserv.addDatabase(db)
             raise cherrypy.HTTPRedirect('/index')
         else:
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
     
-    # LOGGING IN AND OUT
     @cherrypy.expose
     def checkpubkey(self):
         """Check their name and password and send them either to the main page, or back to the main login screen."""
@@ -98,6 +104,15 @@ class MainApp(object):
             logserv.getLoginServerRecord()
         raise cherrypy.HTTPRedirect('/index') 
 
+    @cherrypy.expose
+    def sendMessage(self):
+        logserv = cherrypy.session.get("logserv", None)
+        if logserv is None:
+            pass
+        else:
+            logserv.getLoginServerRecord()
+        raise cherrypy.HTTPRedirect('/index') 
+        
 
     @cherrypy.expose
     def signout(self):
@@ -110,5 +125,5 @@ class MainApp(object):
             cherrypy.lib.sessions.expire()
         raise cherrypy.HTTPRedirect('/')
 
-if __name__ == '__main__':
-    cherrypy.quickstart(MainApp())
+
+#TODO : create api key (user name , password)

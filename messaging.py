@@ -9,26 +9,21 @@ import nacl.utils
 import nacl.secret
 import time
 import os.path
-import database
 
-class loginserver():
-    def __init__(self, username, password):
+class messaging():
+    def __init__():
         self.username = username
         self.password = password
         self.signing_key = None
-        self.connection_address = "202.36.244.183"
-        self.connection_location = "1"
+        self.connection_address = "127.0.0.1:8000"
+        self.connection_location = "2"
         self.users = None
         self.login_server_record = None
-        self.db = None
-    
-    def addDatabase(self, db):
-        self.db = db
     
     '''
     function to report the User. status can be offline, online, away, busy.
     '''
-    def reportUser(self, status):
+    def broadcastMessage()
         headers = self.createAuthorisedHeader()
         url = "http://cs302.kiwi.land/api/report"
         pubkey = self.signing_key.verify_key
@@ -66,28 +61,9 @@ class loginserver():
         response = JSON_object.get("response", None)
         if response == 'ok':
             self.users = JSON_object.get("users", None)
-            if self.users is not None:
-                self.loadUsersIntoDatabase()
-            print("")
-            print(type(self.users))
             return 0   
         else:
             return 1
-    
-        
-    def loadUsersIntoDatabase(self):
-        if self.db is None or self.users is None:
-            print("DIDNT WORK!")
-            return
-            
-        users = self.users
-        for user in users:
-            print(user)
-            #if "username" not in user:
-                #continue
-            self.db.updateUsersInfo(user.get("username"), user.get("connection_address", None), user.get("connection_location", None), user.get("incoming_pubkey", None), user.get("connection_updated_at", None), user.get("status", None))
-        self.db.getUserData("lche_982")
-
 
     '''
     gets the ACTIVE users who have done a report in the last 5 minutes to the login server. 

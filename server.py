@@ -11,6 +11,7 @@ import time
 import os.path
 import loginserver
 import database
+import p2p
 
 class MainApp(object):
 
@@ -65,10 +66,12 @@ class MainApp(object):
                 print("testing error") #todo: deal with errors
                 raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
             logserv.reportUser("online")
+            peer = p2p.p2p(username, password, db, logserv.signing_key)
             cherrypy.session['username'] = username
             cherrypy.session['password'] = password
             cherrypy.session["logserv"] = logserv
             cherrypy.session["database"] = db
+            cherrypy.session["p2p"] = peer
             logserv.addDatabase(db)
             raise cherrypy.HTTPRedirect('/index')
         else:
@@ -105,12 +108,23 @@ class MainApp(object):
         raise cherrypy.HTTPRedirect('/index') 
 
     @cherrypy.expose
-    def sendMessage(self):
-        logserv = cherrypy.session.get("logserv", None)
-        if logserv is None:
+    def sendBroadcastMessage(self):
+        p2p = cherrypy.session.get("p2p", None)
+
+        if p2p is None:
             pass
         else:
-            logserv.getLoginServerRecord()
+            p2p.sendBroadcastMessage("HELLO!!!")
+        raise cherrypy.HTTPRedirect('/index') 
+    
+    @cherrypy.expose
+    def sendPrivateMessage(self):
+        p2p = cherrypy.session.get("p2p", None)
+
+        if p2p is None:
+            pass
+        else:
+            p2p.sendPrivateMessage("ADMIN MESSG", "admin")
         raise cherrypy.HTTPRedirect('/index') 
         
 

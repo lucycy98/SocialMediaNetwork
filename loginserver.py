@@ -16,14 +16,19 @@ class loginserver():
         self.username = username
         self.password = password
         self.signing_key = None
-        self.connection_address = "202.36.244.183"
-        self.connection_location = "1"
+        self.connection_address = "47.72.146.59:8080"
+        self.connection_location = "2"
         self.users = None
         self.login_server_record = None
         self.db = None
+        self.getConnectionAddress()
     
     def addDatabase(self, db):
         self.db = db
+    
+    def getConnectionAddress(self):
+        ip = urllib.request.urlopen('http://ipv4.icanhazip.com').read()
+        self.connection_address = ip.rstrip().decode('utf-8')
     
     '''
     function to report the User. status can be offline, online, away, busy.
@@ -74,7 +79,6 @@ class loginserver():
         else:
             return 1
     
-        
     def loadUsersIntoDatabase(self):
         if self.db is None or self.users is None:
             print("DIDNT WORK!")
@@ -86,7 +90,8 @@ class loginserver():
             #if "username" not in user:
                 #continue
             self.db.updateUsersInfo(user.get("username"), user.get("connection_address", None), user.get("connection_location", None), user.get("incoming_pubkey", None), user.get("connection_updated_at", None), user.get("status", None))
-        self.db.getUserData("lche_982")
+        self.db.printDatabase()
+        user = self.db.getUserData("lche982")
 
 
     '''
@@ -153,6 +158,7 @@ class loginserver():
         response = JSON_object.get("response", None)
         if response == "ok":
             self.login_server_record = JSON_object.get("loginserver_record", None)
+            self.db.addLoginServerRecord(self.username, self.login_server_record)
             return 0
         else:
             return 1
@@ -163,7 +169,7 @@ class loginserver():
     signing key and update the private data.
     '''
     def getSigningKey(self):
-        private_data = self.getPrivateData()
+        private_data = {}
         hex_key = private_data.get("prikeys", None)
         error = 0
         if hex_key is None:
@@ -215,12 +221,15 @@ class loginserver():
         print(JSON_object)
         response = JSON_object.get("response", None)
         login_server_record = JSON_object.get("loginserver_record", None)
+        print("LOGIN SEVER RECORD IS ")
+        print(login_server_record)
 
         if response == "ok" and login_server_record is not None:
             print("pubkey added successfully!")
             self.signing_key = signing_key
             self.hex_key = hex_key
             self.login_server_record = login_server_record
+            #self.db.addLoginServerRecord(self.username, login_server_record)
             return 0
         else:
             print ("Failed to add pubkey")

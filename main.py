@@ -16,7 +16,7 @@ import server
 import externalapis
 
 LISTEN_IP = "0.0.0.0"
-LISTEN_PORT = 1234
+LISTEN_PORT = 8080
 
 def runMainApp():
     #set up the config
@@ -60,7 +60,6 @@ def runMainApp():
                             'server.socket_port': LISTEN_PORT,
                             'engine.autoreload.on': True,
                            })
-
     #cherrypy.tools.auth = cherrypy.Tool('before_handler', auth.check_auth, 99)
 
     # Start the web server

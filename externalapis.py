@@ -28,7 +28,16 @@ class MainApp(object):
         Page = open("static/error.html")
         return Page
 
+    #recieving messages from thers. 
     @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
     def rx_broadcast(self):
         print("MESSAGE IS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         return {"response": "ok"}
+
+    #recieving messages from thers. 
+    @cherrypy.expose
+    def HI(self):
+        print("MESSAGE IS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        return 0

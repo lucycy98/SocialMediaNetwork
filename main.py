@@ -16,17 +16,18 @@ import server
 import externalapis
 
 LISTEN_IP = "0.0.0.0"
-LISTEN_PORT = 1234
+LISTEN_PORT = 1298
+
 
 def runMainApp():
     #set up the config
     conf = {
         '/': {
             'tools.staticdir.root': os.getcwd(),
-            'tools.encode.on': True, 
+            'tools.encode.on': True,
             'tools.encode.encoding': 'utf-8',
             'tools.sessions.on': True,
-            'tools.sessions.timeout': 60 * 1, #timeout is in minutes, * 60 to get hours
+            'tools.sessions.timeout': 60 * 1,  # timeout is in minutes, * 60 to get hours
 
             # The default session backend is in RAM. Other options are 'file',
             # 'postgres', 'memcached'. For example, uncomment:
@@ -35,16 +36,29 @@ def runMainApp():
         },
 
         #configuration for the static assets directory
-        '/static': { 
+        '/static': {
             'tools.staticdir.on': True,
             'tools.staticdir.dir': 'static',
         },
-        
+        '/images': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': os.path.join(os.getcwd(), 'images')
+        },
+        '/js': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': os.path.join(os.getcwd(), 'js')
+        },
+        '/css': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': os.path.join(os.getcwd(), 'css')
+        }
+
         #once a favicon is set up, the following code could be used to select it for cherrypy
         #'/favicon.ico': {
         #    'tools.staticfile.on': True,
         #    'tools.staticfile.filename': os.getcwd() + '/static/favicon.ico',
         #},
+
     }
 
     cherrypy.site = {
@@ -59,7 +73,7 @@ def runMainApp():
     cherrypy.config.update({'server.socket_host': LISTEN_IP,
                             'server.socket_port': LISTEN_PORT,
                             'engine.autoreload.on': True,
-                           })
+                            })
     #cherrypy.tools.auth = cherrypy.Tool('before_handler', auth.check_auth, 99)
 
     # Start the web server
@@ -67,7 +81,8 @@ def runMainApp():
 
     # And stop doing anything else. Let the web server take over.
     cherrypy.engine.block()
- 
+
+
 #Run the function to start everything
 if __name__ == '__main__':
     runMainApp()

@@ -27,7 +27,7 @@ class MainApp(object):
         """The default page, given when we don't recognise where the request is for."""
         #Page = startHTML + "I don't know where you're trying to go, so have a 404 Error."
         cherrypy.response.status = 404
-        Page = open("static/error.html")
+        Page = open("error.html").read()
         return Page
 
     # PAGES (which return HTML that can be viewed in browser)
@@ -37,7 +37,7 @@ class MainApp(object):
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
         else:
-            Page = open("static/index.html")
+            Page = open("index.html").read()
 
         return Page
         
@@ -46,7 +46,7 @@ class MainApp(object):
         if bad_attempt != 0:
             print("bad attempt!")
             
-        Page = open("static/login.html")
+        Page = open("login.html").read()
         return Page
         
       
@@ -86,14 +86,25 @@ class MainApp(object):
 
     # LOGGING IN AND OUT
     @cherrypy.expose
+    @cherrypy.tools.json_out()
     def listActiveUsers(self):
         """Check their name and password and send them either to the main page, or back to the main login screen."""
         logserv = cherrypy.session.get("logserv", None)
-        if logserv is None:
-            pass
-        else:
+        users = database.getAllUsers()
+        Page = ""
+        if logserv is not None:
             logserv.getUsers()
-        raise cherrypy.HTTPRedirect('/index') 
+
+        for user in users:
+            username = user.get("username", None)
+            if username is not None:
+                Page += username + "</br>"
+        
+        
+        json_return = {"all_users" : Page}
+        print("return adata is ")
+        print(json_return)
+        return json_return
 
     @cherrypy.expose
     def updateLoginServerRecord(self):

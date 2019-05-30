@@ -11,6 +11,7 @@ import nacl.secret
 import time
 import os.path
 import database
+import helper
 
 class p2p():
     def __init__(self, username, password, signing_key):
@@ -44,7 +45,7 @@ class p2p():
             print(url)
 
             try:
-                JSON_object = self.postJson(payload, headers, url)
+                JSON_object = helper.postJson(payload, headers, url)
                 print(JSON_object)
                 response = JSON_object.get("response", None)
                 if response == "ok":
@@ -62,7 +63,6 @@ class p2p():
         user_location = user.get("location", None)
         user_pubkey = user.get("pubkey", None)
         
-       
         encr_message = self.encryptMessage(message, user_pubkey)
         loginserver_record = database.getUserInfo(self.username, "loginrecord")        
         print(loginserver_record)
@@ -80,8 +80,6 @@ class p2p():
             "signature": signature_hex_str
         }
 
-        
-
         print("GETTING PERSON")
         print(user)
         if user_address is None:
@@ -91,9 +89,8 @@ class p2p():
         print(payload)
         print(url)
 
-
         try:
-            JSON_object = self.postJson(payload, headers, url)
+            JSON_object = helper.postJson(payload, headers, url)
             print(JSON_object)
             response = JSON_object.get("response", None)
             if response == "ok":
@@ -128,28 +125,6 @@ class p2p():
             'Content-Type' : 'application/json; charset=utf-8',
         }
         return headers
-
-    '''
-    sends a POST/GET request to the URL endpoint specified.
-    returns the JSON response
-    ''' 
-    def postJson(self, payload, headers, url):
-
-        if payload is not None:
-            payload = json.dumps(payload).encode('utf-8')
-        try:
-            req = urllib.request.Request(url, data=payload, headers=headers)
-            response = urllib.request.urlopen(req, timeout=5)
-            data = response.read() # read the received bytes
-            encoding = response.info().get_content_charset('utf-8') #load encoding if possible (default to utf-8)
-            response.close()
-        except urllib.error.HTTPError as error:
-            print(error.read())
-            exit()
-            return None #unneeded?
-        
-        JSON_object = json.loads(data.decode(encoding))
-        return JSON_object
 
     
     

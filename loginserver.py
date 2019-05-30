@@ -10,6 +10,8 @@ import nacl.secret
 import time
 import os.path
 import database
+import os
+import helper
 
 class loginserver():
     def __init__(self, username, password):
@@ -19,8 +21,10 @@ class loginserver():
         self.connection_address = "47.72.146.59:8080"
         self.connection_location = "2"
         self.users = None
+        self.apikey = None
         self.login_server_record = None
         self.getConnectionAddress()
+        self.getNewApiKey()
 
     
     def getConnectionAddress(self):
@@ -36,7 +40,7 @@ class loginserver():
     function to report the User. status can be offline, online, away, busy.
     '''
     def reportUser(self, status):
-        headers = self.createAuthorisedHeader()
+        headers = self.createAuthorisedHeader(True)
         url = "http://cs302.kiwi.land/api/report"
         pubkey = self.signing_key.verify_key
         pubkey_hex = pubkey.encode(encoder=nacl.encoding.HexEncoder)
@@ -51,7 +55,7 @@ class loginserver():
             "status": str(status)
         }
 
-        JSON_object = self.postJson(payload, headers, url)
+        JSON_object = helper.postJson(payload, headers, url)
         print(JSON_object)
         response = JSON_object.get("response", None)
         if response == "ok":
@@ -66,9 +70,9 @@ class loginserver():
     #TODO : store in database
     '''
     def getUsers(self):
-        headers = self.createAuthorisedHeader()
+        headers = self.createAuthorisedHeader(True)
         url = "http://cs302.kiwi.land/api/list_users"
-        JSON_object = self.postJson(None, headers, url)
+        JSON_object = helper.postJson(None, headers, url)
         print(JSON_object)
         response = JSON_object.get("response", None)
         if response == 'ok':
@@ -101,10 +105,10 @@ class loginserver():
     #TODO : update database
     '''
     def checkPublicKey(self, pubkey_str):
-        headers = self.createAuthorisedHeader()
+        headers = self.createAuthorisedHeader(True)
         url = "http://cs302.kiwi.land/api/list_users"
         req = "?pubkey=" + pubkey_str
-        JSON_object = self.postJson(None, headers, url+req)
+        JSON_object = helper.postJson(None, headers, url+req)
         print(JSON_object)
         response = JSON_object.get("response", None)
         if response == 'ok':
@@ -133,13 +137,13 @@ class loginserver():
         signature_hex_str = signed.signature.decode('utf-8')
         print(signature_hex_str)
 
-        headers = self.createAuthorisedHeader()
+        headers = self.createAuthorisedHeader(True)
         payload = {
             "pubkey" : pubkey_hex_str,
             "signature": signature_hex_str
         }
         
-        JSON_object = self.postJson(payload, headers, url)
+        JSON_object = helper.postJson(payload, headers, url)
         print(JSON_object)
         response = JSON_object.get("response", None)
         signature = JSON_object.get("signature", None)
@@ -155,8 +159,8 @@ class loginserver():
     '''
     def getLoginServerRecord(self):
         url = "http://cs302.kiwi.land/api/get_loginserver_record"
-        headers = self.createAuthorisedHeader()
-        JSON_object = self.postJson(None, headers, url)
+        headers = self.createAuthorisedHeader(True)
+        JSON_object = helper.postJson(None, headers, url)
         response = JSON_object.get("response", None)
         if response == "ok":
             self.login_server_record = JSON_object.get("loginserver_record", None)
@@ -212,14 +216,14 @@ class loginserver():
         print("authorise signature here is")
         print(signature_hex_str)
 
-        headers = self.createAuthorisedHeader()
+        headers = self.createAuthorisedHeader(True)
         payload = {
             "pubkey" : pubkey_hex_str,
             "username" : self.username,
             "signature" : signature_hex_str
         }
         
-        JSON_object = self.postJson(payload, headers, url)
+        JSON_object = helper.postJson(payload, headers, url)
         print(JSON_object)
         response = JSON_object.get("response", None)
         login_server_record = JSON_object.get("loginserver_record", None)
@@ -288,9 +292,9 @@ class loginserver():
     '''
     def getPrivateData(self):
         url_get = "http://cs302.kiwi.land/api/get_privatedata"
-        headers = self.createAuthorisedHeader()
+        headers = self.createAuthorisedHeader(True)
 
-        JSON_object = self.postJson(None, headers, url_get)
+        JSON_object = helper.postJson(None, headers, url_get)
         response = JSON_object.get("response", None)
         print(JSON_object)
         private_data = {}
@@ -313,7 +317,7 @@ class loginserver():
     def addKeyPrivateData(self, private_data):
         url_add = "http://cs302.kiwi.land/api/add_privatedata"
             
-        headers = self.createAuthorisedHeader()
+        headers = self.createAuthorisedHeader(True)
         
         print("HEX KEY IS ")
         
@@ -338,7 +342,7 @@ class loginserver():
             "signature": signature_hex_str
         }
 
-        JSON_object = self.postJson(payload, headers, url_add)
+        JSON_object = helper.postJson(payload, headers, url_add)
         print(JSON_object)
         response = JSON_object.get("response", None)
         if response == "ok":
@@ -349,20 +353,56 @@ class loginserver():
             return 1
 
     '''
+    gets api key for this session. 
+    '''
+    def getNewApiKey(self):
+        url = "http://cs302.kiwi.land/api/load_new_apikey"
+        headers = self.createAuthorisedHeader(True)
+        JSON_object = helper.postJson(None, headers, url)
+        print(JSON_object)
+        response = JSON_object.get("response", None)
+        if response == "ok":
+            apikey = JSON_object.get("api_key", None)
+            print(apikey)
+            self.apikey = apikey
+        if apikey is None:
+            print("NO API KEY")
+            return 1
+        filename = "tmp/api.txt"
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, "w") as f:
+                f.write(apikey)
+
+    '''
     returns an authorised header
     '''
-    def createAuthorisedHeader(self):
+    def createAuthorisedHeader(self, needsAuthentication):
+
+        if not needsAuthentication:
+            headers = {
+                'Content-Type' : 'application/json; charset=utf-8'
+            }
+            return headers
 
         if self.username is None or self.password is None:
             return None
+
         #create HTTP BASIC authorization header
-        credentials = ('%s:%s' % (self.username, self.password))
-        b64_credentials = base64.b64encode(credentials.encode('ascii'))
-        headers = {
-            'Authorization': 'Basic %s' % b64_credentials.decode('ascii'),
-            'Content-Type' : 'application/json; charset=utf-8',
-        }
+        if self.username is not None: #change!!! TODO
+            credentials = ('%s:%s' % (self.username, self.password))
+            b64_credentials = base64.b64encode(credentials.encode('ascii'))
+            headers = {
+                'Authorization': 'Basic %s' % b64_credentials.decode('ascii'),
+                'Content-Type' : 'application/json; charset=utf-8',
+            }
+        else: #create api key
+            headers = {
+                'X-username': self.username,
+                'X-apikey' : self.apikey,
+                'Content-Type' : 'application/json; charset=utf-8',
+            }
         return headers
+            
 
     '''
     sends a POST/GET request to the URL endpoint specified.
@@ -374,6 +414,7 @@ class loginserver():
             payload = json.dumps(payload).encode('utf-8')
         try:
             req = urllib.request.Request(url, data=payload, headers=headers)
+ 
             response = urllib.request.urlopen(req)
             data = response.read() # read the received bytes
             encoding = response.info().get_content_charset('utf-8') #load encoding if possible (default to utf-8)

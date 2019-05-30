@@ -1,7 +1,7 @@
 #TODO
 
 fixes:
-finalise IP address with locations work - done
+finalise IP address with locations work
 change symmetric key to password hash
 hash password for storage
 make database close and open instead
@@ -23,4 +23,11 @@ Questions:
 how does the login server know our password and username?
 should the database we are creating store the user name and passwords so you dont have to sign up every time?
 how should the authorise login process work? how should it detect username + pasword combination?
+should each user have their own database?
 
+#########################################################################################################
+
+Messages database format:
+
+need to store all private messages received by the server with a time stamp
+store all broadcasts recieved by the server since then. 

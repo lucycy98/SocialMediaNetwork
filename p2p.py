@@ -10,17 +10,17 @@ import nacl.utils
 import nacl.secret
 import time
 import os.path
+import database
 
 class p2p():
-    def __init__(self, username, password, db, signing_key):
+    def __init__(self, username, password, signing_key):
         self.username = username
         self.password = password
         self.signing_key = signing_key
-        self.db = db
 
     def sendBroadcastMessage(self, message):
         headers = self.createAuthorisedHeader()
-        loginserver_record = self.db.getUserInfo(self.username, "loginrecord")
+        loginserver_record = database.getUserInfo(self.username, "loginrecord")
         ts = str(time.time())
         message_bytes = bytes(loginserver_record+message+ts, encoding='utf-8')
         signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
@@ -33,7 +33,7 @@ class p2p():
         }
 
         print("GETTING PERSON")
-        all_users = self.db.getAllUsers()
+        all_users = database.getAllUsers()
         print(all_users)
 
         for user in all_users:
@@ -57,14 +57,14 @@ class p2p():
     
     def sendPrivateMessage(self, message, send_user):
         headers = self.createAuthorisedHeader()
-        user = self.db.getUserData(send_user)
+        user = database.getUserData(send_user)
         user_address = user.get("address", None)
         user_location = user.get("location", None)
         user_pubkey = user.get("pubkey", None)
         
        
         encr_message = self.encryptMessage(message, user_pubkey)
-        loginserver_record = self.db.getUserInfo(self.username, "loginrecord")        
+        loginserver_record = database.getUserInfo(self.username, "loginrecord")        
         print(loginserver_record)
         ts = str(time.time())
         message_bytes = bytes(loginserver_record+user_pubkey+send_user+encr_message+ts, encoding='utf-8')

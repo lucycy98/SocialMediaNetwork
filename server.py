@@ -57,8 +57,7 @@ class MainApp(object):
     def signin(self, username=None, password=None):
         """Check their name and password and send them either to the main page, or back to the main login screen."""
         logserv = loginserver.loginserver(username, password)
-        db = database.databases(username, password)
-        error = db.checkUsernamePassword()
+        error = database.checkUsernamePassword(username, password)
 
         if error == 0:
             success = logserv.getSigningKey()
@@ -66,13 +65,11 @@ class MainApp(object):
                 print("testing error") #todo: deal with errors
                 raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
             logserv.reportUser("online")
-            peer = p2p.p2p(username, password, db, logserv.signing_key)
+            peer = p2p.p2p(username, password, logserv.signing_key)
             cherrypy.session['username'] = username
             cherrypy.session['password'] = password
             cherrypy.session["logserv"] = logserv
-            cherrypy.session["database"] = db
             cherrypy.session["p2p"] = peer
-            logserv.addDatabase(db)
             raise cherrypy.HTTPRedirect('/index')
         else:
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')

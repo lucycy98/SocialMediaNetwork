@@ -1,0 +1,26 @@
+#TODO
+
+fixes:
+finalise IP address with locations work - done
+change symmetric key to password hash
+hash password for storage
+make database close and open instead
+make postjson methods not in a class
+
+new features
+find out how to store messages
+start UI work
+group chats
+meta messages (blocking, favouriting)
+check messages - retrieve already-sent messages from other clients in the network, as well as all broadcasts recieved
+since that time. 
+need to store when the user was last online (private data?)
+
+#########################################################################################################
+
+Questions:
+
+how does the login server know our password and username?
+should the database we are creating store the user name and passwords so you dont have to sign up every time?
+how should the authorise login process work? how should it detect username + pasword combination?
+

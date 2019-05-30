@@ -20,15 +20,17 @@ class loginserver():
         self.connection_location = "2"
         self.users = None
         self.login_server_record = None
-        self.db = None
         self.getConnectionAddress()
-    
-    def addDatabase(self, db):
-        self.db = db
+
     
     def getConnectionAddress(self):
         ip = urllib.request.urlopen('http://ipv4.icanhazip.com').read()
         self.connection_address = ip.rstrip().decode('utf-8')
+
+        if '10.103' in self.connection_address:
+            self.location = '0'
+        else:
+            self.location = '2'
     
     '''
     function to report the User. status can be offline, online, away, busy.
@@ -61,7 +63,7 @@ class loginserver():
 
     '''
     gets the ACTIVE users who have done a report in the last 5 minutes to the login server. 
-    #TODO : store in db
+    #TODO : store in database
     '''
     def getUsers(self):
         headers = self.createAuthorisedHeader()
@@ -80,7 +82,7 @@ class loginserver():
             return 1
     
     def loadUsersIntoDatabase(self):
-        if self.db is None or self.users is None:
+        if self.users is None:
             print("DIDNT WORK!")
             return
             
@@ -89,14 +91,14 @@ class loginserver():
             print(user)
             #if "username" not in user:
                 #continue
-            self.db.updateUsersInfo(user.get("username"), user.get("connection_address", None), user.get("connection_location", None), user.get("incoming_pubkey", None), user.get("connection_updated_at", None), user.get("status", None))
-        self.db.printDatabase()
-        user = self.db.getUserData("lche982")
+            database.updateUsersInfo(user.get("username"), user.get("connection_address", None), user.get("connection_location", None), user.get("incoming_pubkey", None), user.get("connection_updated_at", None), user.get("status", None))
+        database.printDatabase()
+        user = database.getUserData("lche982")
 
 
     '''
     gets the ACTIVE users who have done a report in the last 5 minutes to the login server. 
-    #TODO : update db
+    #TODO : update database
     '''
     def checkPublicKey(self, pubkey_str):
         headers = self.createAuthorisedHeader()
@@ -158,7 +160,7 @@ class loginserver():
         response = JSON_object.get("response", None)
         if response == "ok":
             self.login_server_record = JSON_object.get("loginserver_record", None)
-            self.db.addLoginServerRecord(self.username, self.login_server_record)
+            database.addLoginServerRecord(self.username, self.login_server_record)
             return 0
         else:
             return 1
@@ -229,7 +231,7 @@ class loginserver():
             self.signing_key = signing_key
             self.hex_key = hex_key
             self.login_server_record = login_server_record
-            #self.db.addLoginServerRecord(self.username, login_server_record)
+            #database.addLoginServerRecord(self.username, login_server_record)
             return 0
         else:
             print ("Failed to add pubkey")

@@ -24,6 +24,10 @@ how does the login server know our password and username?
 should the database we are creating store the user name and passwords so you dont have to sign up every time?
 how should the authorise login process work? how should it detect username + pasword combination?
 should each user have their own database?
+how do you get your own broadcast messages?
+do we have to validate our own messages? probs not. 
+
+how use signature as authentication???????????? sign
 
 #########################################################################################################
 
@@ -31,3 +35,8 @@ Messages database format:
 
 need to store all private messages received by the server with a time stamp
 store all broadcasts recieved by the server since then. 
+
+
+
+
+if we find that the signature is forged, do we still want to save it or discard it to send to in api/checkmessages?

@@ -80,12 +80,15 @@ class MainApp(object):
         return output
         
     @cherrypy.expose
-    def login(self, bad_attempt = 0):
-        if bad_attempt != 0:
+    def login(self, bad_attempt=None):
+        template = j2_env.get_template('web/login.html')
+        if bad_attempt:
             print("bad attempt!")
-            
-        Page = open("web/login.html").read()
-        return Page
+            output = template.render(message='You provided an invalid set of username and password. Please try again.')
+        else:
+            output = template.render()
+        return output
+
         
       
     ################################################### INTERNAL API ####################################################
@@ -95,22 +98,22 @@ class MainApp(object):
     def signin(self, username=None, password=None):
         """Check their name and password and send them either to the main page, or back to the main login screen."""
         logserv = loginserver.loginserver(username, password)
-        error = database.checkUsernamePassword(username, password)
-
-        if error == 0:
-            success = logserv.getSigningKey()
-            if success > 0:
-                print("testing error") #todo: deal with errors
-                raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
-            logserv.reportUser("online")
-            peer = p2p.p2p(username, password, logserv.signing_key)
-            cherrypy.session['username'] = username
-            cherrypy.session['password'] = password
-            cherrypy.session["logserv"] = logserv
-            cherrypy.session["p2p"] = peer
-            raise cherrypy.HTTPRedirect('/index')
-        else:
+        error = logserv.getNewApiKey()
+        
+        if error > 0:
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
+        print("there iwas no error lol")
+        success = logserv.getSigningKey()
+        if success > 0:
+            print("testing error") #todo: deal with errors
+            raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
+        peer = p2p.p2p(username, password, logserv.signing_key)
+        cherrypy.session['username'] = username
+        cherrypy.session['password'] = password
+        cherrypy.session["logserv"] = logserv
+        cherrypy.session["p2p"] = peer
+        raise cherrypy.HTTPRedirect('/index')
+       
     
     @cherrypy.expose
     def checkpubkey(self):
@@ -135,8 +138,10 @@ class MainApp(object):
 
         for user in users:
             username = user.get("username", None)
-            if username is not None:
-                Page += "<li>" + username + "</li>"
+            status = user.get("status", None)
+            if username is None or status is None:
+                continue
+            Page += "<li>" + username + " " + status + "</li>"
         
         json_return = {"all_users" : Page}
         print("return adata is ")
@@ -151,7 +156,16 @@ class MainApp(object):
             pass
         else:
             p2p.sendBroadcastMessage(message)
-        raise cherrypy.HTTPRedirect('/index') 
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def getMessages(self, username=None):
+        p2p = cherrypy.session.get("p2p", None)
+
+        if p2p is None or username is None:
+            pass
+        else:
+            p2p.retrieveMessages(username)
     
 
     @cherrypy.expose
@@ -173,8 +187,19 @@ class MainApp(object):
         else:
             p2p.sendPrivateMessage("ADMIN MESSG", "admin")
         raise cherrypy.HTTPRedirect('/index') 
+    
+    @cherrypy.expose
+    def reportUser(self, status=None):
+        print("reporting user!!!!!!!!!!!")
+        print(status)
+        if not status:
+            status = "online"
+        logserv = cherrypy.session.get("logserv", None)
+        if logserv is None:
+            pass
+        else:
+            logserv.reportUser(status)
         
-
     @cherrypy.expose
     def signout(self):
         """Logs the current user out, expires their session"""

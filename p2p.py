@@ -99,6 +99,10 @@ class p2p():
                 print("response not OK")
         except:
             print("FAILED TO SEND ADMIN MESAGE")
+    
+    def retrieveMessages(self, username):
+        print(username)
+
 
     def encryptMessage(self, message, publickey_hex):
         #publickey_hex contains the target publickey

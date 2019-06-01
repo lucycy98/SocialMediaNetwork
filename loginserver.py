@@ -24,8 +24,7 @@ class loginserver():
         self.apikey = None
         self.login_server_record = None
         self.getConnectionAddress()
-        self.getNewApiKey()
-
+        #self.getNewApiKey()
     
     def getConnectionAddress(self):
         ip = urllib.request.urlopen('http://ipv4.icanhazip.com').read()
@@ -36,6 +35,19 @@ class loginserver():
         else:
             self.location = '2'
     
+    def ping(self):
+        headers = self.createAuthorisedHeader(True)
+        url = "http://cs302.kiwi.land/api/ping"
+        JSON_object = helper.postJson(None, headers, url)
+        print(JSON_object)
+        response = JSON_object.get("response", None)
+        if response == "ok":
+            print("valid user name and password")
+            return 0
+        else:
+            message = JSON_object.get("message", None)
+            return message
+
     '''
     function to report the User. status can be offline, online, away, busy.
     '''
@@ -76,28 +88,35 @@ class loginserver():
         print(JSON_object)
         response = JSON_object.get("response", None)
         if response == 'ok':
-            self.users = JSON_object.get("users", None)
-            if self.users is not None:
-                self.loadUsersIntoDatabase()
+            users = JSON_object.get("users", None)
+            if users is not None:
+                self.loadUsersIntoDatabase(users)
             print("")
-            print(type(self.users))
             return 0   
         else:
             return 1
     
-    def loadUsersIntoDatabase(self):
-        if self.users is None:
-            print("DIDNT WORK!")
-            return
-            
-        users = self.users
-        for user in users:
-            print(user)
-            #if "username" not in user:
-                #continue
-            database.updateUsersInfo(user.get("username"), user.get("connection_address", None), user.get("connection_location", None), user.get("incoming_pubkey", None), user.get("connection_updated_at", None), user.get("status", None))
+    def loadUsersIntoDatabase(self, reported_users):
+        online_users = []
+        for user in reported_users:
+            username = user.get("username", None)
+            status = user.get("status", None)
+            online_users.append(user.get("username"))
+
+            if not status:
+                    status = "online"
+            database.updateUsersInfo(username, user.get("connection_address", None), user.get("connection_location", None), user.get("incoming_pubkey", None), user.get("connection_updated_at", None), status)
+
+        all_users = database.getAllUsers()
+        print(all_users)
+        for user in all_users:
+            username = user.get("username", None)
+            if username is None: 
+                "USER IS NONE!!!!!!!!!!!!!!"
+                continue
+            if username not in online_users:
+                database.makeUserOffline(username)    
         database.printDatabase()
-        user = database.getUserData("lche982")
 
 
     '''
@@ -358,13 +377,26 @@ class loginserver():
     def getNewApiKey(self):
         url = "http://cs302.kiwi.land/api/load_new_apikey"
         headers = self.createAuthorisedHeader(True)
-        JSON_object = helper.postJson(None, headers, url)
-        print(JSON_object)
+        JSON_object = {}
+        print('e are in API')
+        error_message = False
+        try: 
+            JSON_object = helper.postJson(None, headers, url)
+        except urllib.error.HTTPError as error:
+            print(error.read())
+            error_message = True
+        if error_message: 
+            return 1
+
         response = JSON_object.get("response", None)
         if response == "ok":
             apikey = JSON_object.get("api_key", None)
             print(apikey)
             self.apikey = apikey
+        else:
+            message = JSON_object.get("message", None)
+            print(message)
+            return 1
         if apikey is None:
             print("NO API KEY")
             return 1
@@ -372,6 +404,7 @@ class loginserver():
         os.makedirs(os.path.dirname(filename), exist_ok=True)
         with open(filename, "w") as f:
                 f.write(apikey)
+        return 0
 
     '''
     returns an authorised header
@@ -420,10 +453,10 @@ class loginserver():
             encoding = response.info().get_content_charset('utf-8') #load encoding if possible (default to utf-8)
             response.close()
         except urllib.error.HTTPError as error:
+            print("JSON ERROR")
             print(error.read())
-            exit()
-            return None #unneeded?
-        
+            JSON_object = json.loads(error.decode(encoding))
+            return JSON_object
         JSON_object = json.loads(data.decode(encoding))
         return JSON_object
 

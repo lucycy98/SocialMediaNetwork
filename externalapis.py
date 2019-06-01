@@ -32,6 +32,15 @@ class MainApp(object):
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
+    def rx_privatemessage(self):
+        print("recieving PM")
+        inputs = cherrypy.request.json
+        return {"response": "ok"}
+
+    #recieving messages from thers. 
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
     def rx_broadcast(self):
         print("MESSAGE IS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         return {"response": "ok"}

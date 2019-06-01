@@ -136,12 +136,23 @@ class MainApp(object):
         for user in users:
             username = user.get("username", None)
             if username is not None:
-                Page += username + "</br>"
+                Page += "<li>" + username + "</li>"
         
         json_return = {"all_users" : Page}
         print("return adata is ")
         print(json_return)
         return json_return
+
+    @cherrypy.expose
+    def sendBroadcastMessage(self, message=None):
+        p2p = cherrypy.session.get("p2p", None)
+
+        if p2p is None or message is None:
+            pass
+        else:
+            p2p.sendBroadcastMessage(message)
+        raise cherrypy.HTTPRedirect('/index') 
+    
 
     @cherrypy.expose
     def updateLoginServerRecord(self):
@@ -152,15 +163,6 @@ class MainApp(object):
             logserv.getLoginServerRecord()
         raise cherrypy.HTTPRedirect('/index') 
 
-    @cherrypy.expose
-    def sendBroadcastMessage(self):
-        p2p = cherrypy.session.get("p2p", None)
-
-        if p2p is None:
-            pass
-        else:
-            p2p.sendBroadcastMessage("HELLO!!!")
-        raise cherrypy.HTTPRedirect('/index') 
     
     @cherrypy.expose
     def sendPrivateMessage(self):

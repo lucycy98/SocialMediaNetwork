@@ -15,8 +15,8 @@
 
     <div class='block_container'>
         <div class='cont'>
-            <form name="messageform">
-                <input type="text" name="q" placeholder='Make a public broadcast.'> </br></br>
+            <form action="/sendBroadcastMessage" method="post" enctype="multipart/form-data">
+                <input type="text" name="message" placeholder='Make a public broadcast.'> </br></br>
                 <input type="submit" value="Send">
             </form>
         </div>

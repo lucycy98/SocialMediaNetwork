@@ -8,7 +8,7 @@
 
 {% block body %}
 <div class='app-layout'>
-    <div class='teams box'>
+    <div class='teams box webkit-scrollbar webkit-scrollbar-thumb'>
 
         <b>Group Chats</b>
         <ul class=team-list>
@@ -23,11 +23,12 @@
         
         <b>Users</b>
         <ul id='all_users' class=team-list>
+
         </ul>
 
     </div>
     <div class='header box'>Messages</div>
-    <div class='messages box'>
+    <div class='messages box webkit-scrollbar webkit-scrollbar-thumb'>
         <ul class='message-list'>
             <li><div class='green_box'><span>Message from Lucy</span></div></li>
             <li><div class='blue_box'><span>Message from Me</span></div></li>
@@ -52,5 +53,4 @@
 
 <script src="js/list_users.js">
 </script>
-
 {% endblock %}

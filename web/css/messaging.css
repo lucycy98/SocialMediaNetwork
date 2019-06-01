@@ -93,6 +93,8 @@ input {
   -webkit-box-shadow: 2px 0 5px -2px #888;
   box-shadow: 2px 0 5px -2px #888;
   z-index: 1;
+  overflow-y: scroll;
+  height: 100%;
 }
 
 .header {
@@ -131,4 +133,14 @@ input[type=text] {
     background-color: #17bd93;
     color: #ffffff;
     width: 10%;
+  }
+
+  ::-webkit-scrollbar {
+    width: 5px; 
+    background: transparent;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #d3d3d3;
+    border-radius: 1em;
   }

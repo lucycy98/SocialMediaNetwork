@@ -175,7 +175,7 @@ class loginserver():
     signing key and update the private data.
     '''
     def getSigningKey(self):
-        private_data = {}
+        private_data = self.getPrivateData()
         hex_key = private_data.get("prikeys", None)
         error = 0
         if hex_key is None:

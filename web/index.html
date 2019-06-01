@@ -1,0 +1,54 @@
+{% extends 'web/base.html' %}
+
+{% block title %} Index {% endblock %}
+{% block head %}
+{{ super() }}
+<link rel='stylesheet' href='css/index.css' />
+{% endblock %}
+
+{% block body %}
+
+<div id="container">
+
+    <h1>Hello World</h1>
+    <p>Welcome to this website.</p>
+
+    <div class='block_container'>
+        <div class='cont'>
+            <form name="messageform">
+                <input type="text" name="q" placeholder='Make a public broadcast.'> </br></br>
+                <input type="submit" value="Send">
+            </form>
+        </div>
+    </div>
+
+    <div class='block_container'>           
+        <div class='cont'>
+            <h3>@lche982 <img class='vertical-align-img' src=img/block.svg style="width: 1em"></h3>
+            <p>Hello this is a tweet heheheheh</p> </br>
+            <img class='icons' src=img/like.svg style="width: 1.5em">
+
+        </div>
+    </div>
+
+    <div class='block_container'>           
+            <div class='cont'>
+                <h3>@lche982 <img class='vertical-align-img' src=img/block.svg style="width: 1em"></h3>
+                <p>Hello this is a tweet heheheheh</p> </br>
+                <img class='icons' src=img/like.svg style="width: 1.5em">
+    
+            </div>
+        </div>
+
+        <div class='block_container'>           
+                <div class='cont'>
+                    <h3>@lche982 <img class='vertical-align-img' src=img/block.svg style="width: 1em"></h3>
+                    <p>Hello this is a tweet heheheheh</p> </br>
+                    <img class='icons' src=img/like.svg style="width: 1.5em">
+        
+                </div>
+            </div>
+
+</div>
+
+{% endblock %}

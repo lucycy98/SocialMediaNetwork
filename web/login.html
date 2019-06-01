@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel='stylesheet' href='css/base.css' />
+    <link rel='stylesheet' href='css/login.css' />
+
+    <title>Login</title>
+
+</head>
+
+
+
+<body>
+    <div id="container">
+        <h1>Welcome to Compsys 302</h1>
+        <p>Please sign into your account:</p>
+
+        <div class='block_container'>
+            <div class='cont'>
+                <form action="/signin" method="post" enctype="multipart/form-data">
+                    <h3>Username:</h3>
+                    <input type="text" name="username" placeholder='  Username'><br />
+                    <h3>Password:</h3>
+                    <input type="text" name="password" placeholder='  Password'> <br />
+                    <input type="submit" value="Login" /></form>
+            </div>
+        </div>
+    </div>
+</body>
+
+</html>

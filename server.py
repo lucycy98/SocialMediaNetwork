@@ -12,6 +12,10 @@ import os.path
 import loginserver
 import database
 import p2p
+from jinja2 import Environment, FileSystemLoader
+
+THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+j2_env = Environment(loader=FileSystemLoader(THIS_DIR), trim_blocks=True)
 
 class MainApp(object):
 
@@ -25,28 +29,62 @@ class MainApp(object):
     @cherrypy.expose
     def default(self, *args, **kwargs):
         """The default page, given when we don't recognise where the request is for."""
-        #Page = startHTML + "I don't know where you're trying to go, so have a 404 Error."
         cherrypy.response.status = 404
-        Page = open("error.html").read()
-        return Page
+        template = j2_env.get_template('web/404.html')
+        output = template.render(url_index='index')
+        return output
 
-    # PAGES (which return HTML that can be viewed in browser)
     @cherrypy.expose
     def index(self):
+
         logserv = cherrypy.session.get("logserv", None)
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
         else:
-            Page = open("index.html").read()
+            template = j2_env.get_template('web/index.html')
+            output = template.render()
+        return output
+    
+    @cherrypy.expose
+    def profile(self):
 
-        return Page
+        logserv = cherrypy.session.get("logserv", None)
+        if logserv is None:
+            raise cherrypy.HTTPRedirect('/login')
+        else:
+            template = j2_env.get_template('web/profile.html')
+            output = template.render()
+        return output
+    
+    @cherrypy.expose
+    def settings(self):
+
+        logserv = cherrypy.session.get("logserv", None)
+        if logserv is None:
+            raise cherrypy.HTTPRedirect('/login')
+        else:
+            template = j2_env.get_template('web/settings.html')
+            output = template.render()
+        
+        return output
+
+    @cherrypy.expose
+    def message(self):
+
+        logserv = cherrypy.session.get("logserv", None)
+        if logserv is None:
+            raise cherrypy.HTTPRedirect('/login')
+        else:
+            template = j2_env.get_template('web/message.html')
+            output = template.render()
+        return output
         
     @cherrypy.expose
     def login(self, bad_attempt = 0):
         if bad_attempt != 0:
             print("bad attempt!")
             
-        Page = open("login.html").read()
+        Page = open("web/login.html").read()
         return Page
         
       
@@ -100,7 +138,6 @@ class MainApp(object):
             if username is not None:
                 Page += username + "</br>"
         
-        
         json_return = {"all_users" : Page}
         print("return adata is ")
         print(json_return)
@@ -146,6 +183,7 @@ class MainApp(object):
             logserv.reportUser("offline")
             cherrypy.lib.sessions.expire()
         raise cherrypy.HTTPRedirect('/')
+
 
 
 #TODO : create api key (user name , password)

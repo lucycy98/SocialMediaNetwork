@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <link rel='stylesheet' href='css/base.css' />
+    {% block head %}
+    <title>{% block title %}{% endblock %}</title>
+    {% endblock %}
+</head>
+
+<body>
+    <div class="navbar">
+        <a href="index">Home</a>
+        <a href="profile">Profile</a>
+        <a href="message">Messages</a>
+        <div class="dropdown">
+            <button class="dropbtn">Account
+                <i class="fa fa-caret-down"></i>
+            </button>
+            <div class="dropdown-content">
+                <a href="settings">Settings</a>
+                <a href="signout">Logout</a>
+            </div>
+        </div>
+    </div>
+    {% block body %}{% endblock %}
+</body>
+
+</html>

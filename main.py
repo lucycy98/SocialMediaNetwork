@@ -16,7 +16,7 @@ import server
 import externalapis
 
 LISTEN_IP = "0.0.0.0"
-LISTEN_PORT = 1298
+LISTEN_PORT = 1234
 
 
 def runMainApp():
@@ -42,15 +42,19 @@ def runMainApp():
         },
         '/images': {
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': os.path.join(os.getcwd(), 'images')
+            'tools.staticdir.dir': os.path.join(os.getcwd(), 'web/images')
         },
         '/js': {
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': os.path.join(os.getcwd(), 'js')
+            'tools.staticdir.dir': os.path.join(os.getcwd(), 'web/js')
         },
         '/css': {
             'tools.staticdir.on': True,
-            'tools.staticdir.dir': os.path.join(os.getcwd(), 'css')
+            'tools.staticdir.dir': os.path.join(os.getcwd(), 'web/css')
+        },
+        '/img': {
+            'tools.staticdir.on': True,
+            'tools.staticdir.dir': os.path.join(os.getcwd(), 'web/img')
         }
 
         #once a favicon is set up, the following code could be used to select it for cherrypy

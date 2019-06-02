@@ -40,6 +40,8 @@ class p2p():
         all_users = database.getAllUsers()
         print(all_users)
 
+        database.addBroadCast(self.username, message, ts, signature_hex_str)
+
         for user in all_users:
             user_address = user.get("address", None)
             if user_address is None:
@@ -85,7 +87,6 @@ class p2p():
             "sender_created_at": ts,
             "signature": signature_hex_str
         }
-
         print("GETTING PERSON")
         print(user)
         if user_address is None:
@@ -95,6 +96,8 @@ class p2p():
             url = "http://cs302.kiwi.land/api/rx_privatemessage"
         print(payload)
         print(url)
+    
+        database.addsentMessages(self.username, send_user, message, ts) #maybe change to encrypted? nah
 
         try:
             JSON_object = helper.postJson(payload, headers, url)
@@ -102,6 +105,7 @@ class p2p():
             response = JSON_object.get("response", None)
             if response == "ok":
                 print("pm sent successfully sent")
+
             else:
                 print("response not OK")
         except:
@@ -118,14 +122,30 @@ class p2p():
         message_encr = encrypted.decode('utf-8')
         return message_encr
 
-    def retrieveMessages(self, username):
-        print(username)
-        theirMessages = database.getSpecificMessages(self.username, username) #message and timestamp
-        print(theirMessages)
-        myMessages = database.getAllSentMessages(self.username, username) #message and timestamp
-        print(myMessages)
+            
 
-        all_messages = []
+    
+    def retrieveBroadcasts(self):
+        print("METHODS")
+        all_broadcasts = database.getAllBroadcasts()
+        data = []
+        print(all_broadcasts)
+        for broadcast in all_broadcasts:
+            tup = {}
+            message = broadcast.get("message")
+            loginserver = broadcast.get("loginserver_record")
+            print(message)
+            print(loginserver)
+            print(type(loginserver))
+            tup["message"] = message
+            tup["username"] = "username"
+            data.append(tup)
+        print(data)
+        JSON = {"data": data}
+
+        return JSON
+
+        
     '''
     returns an authorised header
     '''
@@ -156,6 +176,21 @@ class p2p():
                 'Content-Type' : 'application/json; charset=utf-8',
             }
         return headers
+    
+    def testRecieveMessage(self, message):
+        target_username = 'lche982'
+        sender_username = 'admin' #after signing etc.
+        message = "test Message"
+        user = database.getUserData(target_username)
+        user_pubkey = user.get("pubkey", None)
+        
+        encr_message = self.encryptMessage(message, user_pubkey)
+        loginserver_record = database.getUserInfo(sender_username, "loginrecord")        
+        print("!!!!!!!!!!!!!!!!!!!!!!!!TESTING RECIEVE!!!!!!!!!!!!!!!!!!!!!!!")
+        ts = str(time.time())
+        database.addReceivedMessage(target_username, user_pubkey, encr_message, ts, message, sender_username) #sending myself a message.
+        
+
             
 
     

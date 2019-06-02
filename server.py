@@ -81,6 +81,7 @@ class MainApp(object):
         
     @cherrypy.expose
     def login(self, bad_attempt=None):
+        #database.getConversation("lche982", "admin")
         template = j2_env.get_template('web/login.html')
         if bad_attempt:
             print("bad attempt!")
@@ -169,16 +170,49 @@ class MainApp(object):
         else:
             p2p.sendBroadcastMessage(message)
         raise cherrypy.HTTPRedirect('/index')
+    
+    @cherrypy.expose
+    def testRecieveMessage(self, message=None):
+        p2p = cherrypy.session.get("p2p", None)
+
+        if p2p is None or message is None:
+            pass
+        else:
+            p2p.testRecieveMessage(message)
+        raise cherrypy.HTTPRedirect('/index')
+
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def getBroadcasts(self, username=None):
+        print("METHODS")
+        all_broadcasts = database.getAllBroadcasts()
+        data = []
+        print(all_broadcasts)
+        for broadcast in all_broadcasts:
+            tup = {}
+            message = broadcast.get("message")
+            loginserver = broadcast.get("loginserver_record")
+            print(message)
+            print(loginserver)
+            print(type(loginserver))
+            tup["message"] = message
+            tup["username"] = "username"
+            data.append(tup)
+        print(data)
+        JSON = {"data": data}
+
+        return JSON
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def getMessages(self, username=None):
-        p2p = cherrypy.session.get("p2p", None)
-
-        if p2p is None or username is None:
-            pass
-        else:
-            p2p.retrieveMessages(username)
+        print("GETTIGN !!!!! MESAGES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+        all_conversations = database.getConversation("lche982", username) #TODO chaange
+        print(all_conversations)
+        for convo in all_conversations:
+            print(convo)
+        
+        return {}
     
 
     @cherrypy.expose

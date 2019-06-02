@@ -12,7 +12,7 @@ def initialiseTable(c, conn):
     c.execute("CREATE TABLE userhashes (username STRING NOT NULL, hash STRING, loginrecord STRING)")  
     
     c.execute("CREATE TABLE broadcasts (loginserver_record STRING NOT NULL, message STRING, sender_created_at INT(11), signature STRING)") 
-    c.execute("CREATE TABLE receivedMessages (target_username, STRING NOT NULL, target_pubkey STRING NOT NULL, encrypted_message STRING, sender_created_at INT(11), signature STRING, sender_username STRING, sent STRING)") 
+    c.execute("CREATE TABLE receivedMessages (target_username STRING NOT NULL, target_pubkey STRING NOT NULL, encrypted_message STRING, sender_created_at INT(11), signature STRING, sender_username STRING, sent STRING)") 
     c.execute("CREATE TABLE sentMessages (username STRING NOT NULL, target_username STRING, message STRING, sender_created_at INT(11), sent STRING)") 
 
     conn.commit()
@@ -46,12 +46,22 @@ def checkUsernamePassword(username, password):
 
 def getConversation(username, otherUsername):
     conn, c = loadDatabase()
-    c.execute("(SELECT message, sender_created_at, sent FROM sentMessages WHERE username = {username} AND target_username = {target_username} UNION ALL SELECT encrypted_message, sender_created_at, sent FROM receivedMessages WHERE target_username = '{username}' AND sender_username= '{target_username}') ORDER BY sender_created_at".format(target_username=otherUsername, username=username))
+
+    query = """ SELECT message, sender_created_at, sent 
+                FROM sentMessages 
+                WHERE username='{username}' AND target_username='{target_username}'
+                    UNION ALL
+                SELECT encrypted_message, sender_created_at, sent 
+                FROM receivedMessages 
+                WHERE target_username='{username}' AND sender_username='{target_username}'""".format(target_username=otherUsername, username=username)
+    
+    c.execute(query)
     result = c.fetchall()
     if len(result) == 0:
         closeDatabase(conn)
         return None
     data = resultToJSON(result, c)
+    printDatabase()
     closeDatabase(conn)
     return data
 
@@ -71,7 +81,7 @@ def getAllSentMessages(username, target_username, since=None):
     return data
 
 #get all broadcasts since....
-def getAllBroadcast(since=None):
+def getAllBroadcasts(since=None):
     conn, c = loadDatabase()
     if not since: 
         c.execute("SELECT * FROM broadcasts")
@@ -118,7 +128,7 @@ def getSpecificMessages(username, sender_username, since=None):
 
 def addReceivedMessage(target_username, target_pubkey, encrypted_message, timestamp , signature, their_username):
     conn, c = loadDatabase()
-    c.execute("INSERT INTO receivedMessages VALUES('{target_username}','{target_pubkey}','{encrypted_message}','{timestamp}','{lastReport}','{signature}', '{a}', 'received')".format(a=their_username, target_username=target_username, target_pubkey=target_pubkey, encrypted_message=encrypted_message, timestamp=timestamp, signature=signature))
+    c.execute("INSERT INTO receivedMessages VALUES('{target_username}','{target_pubkey}','{encrypted_message}','{timestamp}','{signature}', '{a}', 'received')".format(a=their_username, target_username=target_username, target_pubkey=target_pubkey, encrypted_message=encrypted_message, timestamp=timestamp, signature=signature))
     closeDatabase(conn)
 
 def addsentMessages(username ,target_username, message, timestamp):
@@ -128,7 +138,7 @@ def addsentMessages(username ,target_username, message, timestamp):
 
 def addBroadCast(username, message, timestamp, signature):
     conn, c = loadDatabase()
-    c.execute("INSERT INTO sentMessages VALUES('{username}','{message}','{timestamp}', '{signature}')".format(username=username, message=message, timestamp=timestamp, signature=signature))
+    c.execute("INSERT INTO broadcasts VALUES('{username}','{message}','{timestamp}', '{signature}')".format(username=username, message=message, timestamp=timestamp, signature=signature))
     closeDatabase(conn)
 
 
@@ -190,7 +200,7 @@ def getUserInfo( username, want):
 
 def printDatabase():
     conn, c = loadDatabase()
-    c.execute("SELECT * FROM userhashes")
+    c.execute("SELECT * FROM receivedMessages")
     result = c.fetchall()
     print("print database:")
     print(result)

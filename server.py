@@ -164,10 +164,10 @@ class MainApp(object):
     def sendBroadcastMessage(self, message=None):
         p2p = cherrypy.session.get("p2p", None)
 
-        if p2p is None:
+        if p2p is None or message is None:
             pass
         else:
-            p2p.sendBroadcastMessage("HELLO!!!")
+            p2p.sendBroadcastMessage(message)
         raise cherrypy.HTTPRedirect('/index')
 
     @cherrypy.expose

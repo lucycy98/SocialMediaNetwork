@@ -22,6 +22,8 @@ class p2p():
 
     def sendBroadcastMessage(self, message):
         headers = self.createAuthorisedHeader(True)
+        print(headers)
+        print(message)
         loginserver_record = database.getUserInfo(self.username, "loginrecord")
         ts = str(time.time())
         message_bytes = bytes(loginserver_record+message+ts, encoding='utf-8')
@@ -42,7 +44,9 @@ class p2p():
             user_address = user.get("address", None)
             if user_address is None:
                 continue
-            url = "http://cs302.kiwi.land/api/rx_broadcast"
+            url = "http://" + user_address + "/api/rx_broadcast"
+            if user.get("username") == 'admin':
+                url = "http://cs302.kiwi.land/api/rx_broadcast"
             print(url)
 
             try:
@@ -59,6 +63,7 @@ class p2p():
     
     def sendPrivateMessage(self, message, send_user):
         headers = self.createAuthorisedHeader(True)
+
         user = database.getUserData(send_user)
         user_address = user.get("address", None)
         user_location = user.get("location", None)
@@ -85,8 +90,9 @@ class p2p():
         print(user)
         if user_address is None:
             return 1
-        url = "http://" + user_address + "/rx_privatemessage"
-        #url = "http://cs302.kiwi.land/rx_privatemessage"
+        url = "http://" + user_address + "/api/rx_privatemessage"
+        if send_user == "admin":
+            url = "http://cs302.kiwi.land/api/rx_privatemessage"
         print(payload)
         print(url)
 

@@ -90,14 +90,15 @@ class loginserver():
         if response == 'ok':
             self.users = JSON_object.get("users", None)
             if self.users is not None:
-                self.loadUsersIntoDatabase()
+                self.loadUsersIntoDatabase(self.users)
             print("")
             print(type(self.users))
             return 0   
         else:
             return 1
     
-    def loadUsersIntoDatabase(self):
+
+    def loadUsersIntoDatabase(self, reported_users):
         online_users = []
         for user in reported_users:
             username = user.get("username", None)

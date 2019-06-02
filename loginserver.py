@@ -25,16 +25,7 @@ class loginserver():
         self.login_server_record = None
         self.getConnectionAddress()
         #self.getNewApiKey()
-    
-    def getConnectionAddress(self):
-        ip = urllib.request.urlopen('http://ipv4.icanhazip.com').read()
-        self.connection_address = ip.rstrip().decode('utf-8')
 
-        if '10.103' in self.connection_address:
-            self.location = '0'
-        else:
-            self.location = '2'
-    
     def ping(self):
         headers = self.createAuthorisedHeader(True)
         url = "http://cs302.kiwi.land/api/ping"
@@ -47,7 +38,16 @@ class loginserver():
         else:
             message = JSON_object.get("message", None)
             return message
+            
+    def getConnectionAddress(self):
+        ip = urllib.request.urlopen('http://ipv4.icanhazip.com').read()
+        self.connection_address = ip.rstrip().decode('utf-8')
 
+        if '10.103' in self.connection_address:
+            self.location = '0'
+        else:
+            self.location = '2'
+    
     '''
     function to report the User. status can be offline, online, away, busy.
     '''
@@ -88,15 +88,16 @@ class loginserver():
         print(JSON_object)
         response = JSON_object.get("response", None)
         if response == 'ok':
-            users = JSON_object.get("users", None)
-            if users is not None:
-                self.loadUsersIntoDatabase(users)
+            self.users = JSON_object.get("users", None)
+            if self.users is not None:
+                self.loadUsersIntoDatabase()
             print("")
+            print(type(self.users))
             return 0   
         else:
             return 1
     
-    def loadUsersIntoDatabase(self, reported_users):
+    def loadUsersIntoDatabase(self):
         online_users = []
         for user in reported_users:
             username = user.get("username", None)
@@ -182,51 +183,40 @@ class loginserver():
         JSON_object = helper.postJson(None, headers, url)
         response = JSON_object.get("response", None)
         if response == "ok":
-            print("GOT LOGIN SERVER STORED.")
             self.login_server_record = JSON_object.get("loginserver_record", None)
             database.addLoginServerRecord(self.username, self.login_server_record)
-            print(self.login_server_record)
             return 0
         else:
             return 1
-        
-
-    def getSigningKey(self):
-    
-        self.addPublicKey()
-        error = self.testPublicKey()
-        #self.addKeyPrivateData(private_data)
-        print(error)
-        self.getLoginServerRecord()
-        if error > 0:
-            print("an error occured in getting a public key from either the private data or created.")
-        return error 
 
     '''
     goes through the private data on the account, and checks if a signing key has already
     been created on the account. if yes, add that to the session. if not, create a new 
     signing key and update the private data.
     '''
-    def getSigningKeyOLD(self):
-        hex_key = None
+    def getSigningKey(self):
         private_data = {}
-        if os.path.isfile("secret.bin"): 
-            private_data = self.getPrivateData()
-            hex_key = private_data.get("prikeys", None)
-        
-        if hex_key is None or not os.path.isfile("secret.bin"):
+        if not os.path.isfile("secret.bin"):
+            #if hex_key is None:
             #create a public key and add to private data
             self.addPublicKey()
             error = self.testPublicKey()
             self.addKeyPrivateData(private_data)
             print("HEX KEY IS NONE")
         else:
+            private_data = self.getPrivateData()
+            hex_key = private_data.get("prikeys", None)
+            if hex_key is None:
+                self.addPublicKey()
+                error = self.testPublicKey()
+                self.addKeyPrivateData(private_data)
+                print("HEX KEY IS NONE")
+            error = 0
             self.signing_key = nacl.signing.SigningKey(hex_key, encoder=nacl.encoding.HexEncoder)
             self.hex_key = hex_key
             error = self.testPublicKey()
-        
+
         self.getLoginServerRecord()
-        
         if error > 0:
             print("an error occured in getting a public key from either the private data or created.")
         return error 
@@ -273,7 +263,7 @@ class loginserver():
             self.signing_key = signing_key
             self.hex_key = hex_key
             self.login_server_record = login_server_record
-            database.addLoginServerRecord(self.username, login_server_record)
+            #database.addLoginServerRecord(self.username, login_server_record)
             return 0
         else:
             print ("Failed to add pubkey")
@@ -291,42 +281,6 @@ class loginserver():
             with open('secret.bin', "rb") as f:
                 hexed_key = f.read()
             return hexed_key       
-
-    def sendBroadcastMessage(self, message):
-        headers = self.createAuthorisedHeader(True)
-        loginserver_record = self.login_server_record
-        ts = str(time.time())
-        print(message)
-        print(self.username)
-        print(loginserver_record)
-        message_bytes = bytes(loginserver_record+message+ts, encoding='utf-8')
-        signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
-        signature_hex_str = signed.signature.decode('utf-8')
-        
-        payload = {
-            "loginserver_record": loginserver_record,
-            "message": str(message),
-            "sender_created_at": ts,
-            "signature": signature_hex_str
-        }
-
-        print(payload)
-
-        print("GETTING PERSON")
-        url = "http://cs302.kiwi.land/api/rx_broadcast"
-           
-        try:
-            JSON_object = self.postJson(payload, headers, url)
-            print(JSON_object)
-            response = JSON_object.get("response", None)
-            if response == "ok":
-                print("broadcast successfully sent")
-                print("url")
-            else:
-                print("response not OK")
-        except Exception as e:
-            print("FAILED TO BROADCAST!")
-            print(e)
 
     '''
     takes in a string as input, and encrypts it with the SecretBox
@@ -379,13 +333,8 @@ class loginserver():
             print(type(private_data_encr))
             private_data_bytes = bytes.fromhex(private_data_encr)
             print(type(private_data_bytes))
-            try: 
-                private_data_str = self.decryptString(private_data_bytes)
-                private_data = json.loads(private_data_str)
-                private_data = {}
-            except nacl.exceptions.CryptoError as e:
-                print(e) 
-            
+            private_data_str = self.decryptString(private_data_bytes)
+            private_data = json.loads(private_data_str)
         return private_data
 
     '''
@@ -437,27 +386,14 @@ class loginserver():
     def getNewApiKey(self):
         url = "http://cs302.kiwi.land/api/load_new_apikey"
         headers = self.createAuthorisedHeader(True)
-        JSON_object = {}
-        print('e are in API')
-        error_message = False
-        try: 
-            JSON_object = helper.postJson(None, headers, url)
-        except urllib.error.HTTPError as error:
-            print(error.read())
-            error_message = True
-        if error_message: 
-            return 1
-
+        JSON_object = helper.postJson(None, headers, url)
+        print(JSON_object)
         response = JSON_object.get("response", None)
         if response == "ok":
             apikey = JSON_object.get("api_key", None)
             print(apikey)
             self.apikey = apikey
-        else:
-            message = JSON_object.get("message", None)
-            print(message)
-            return 1
-        if apikey is None:
+        if apikey is None or response != "ok":
             print("NO API KEY")
             return 1
         filename = "tmp/api.txt"
@@ -471,7 +407,7 @@ class loginserver():
     '''
     def createAuthorisedHeader(self, needsAuthentication):
 
-        if not needsAuthentication:
+        if needsAuthentication is False:
             headers = {
                 'Content-Type' : 'application/json; charset=utf-8'
             }
@@ -487,7 +423,8 @@ class loginserver():
                 'X-apikey' : self.apikey,
                 'Content-Type' : 'application/json; charset=utf-8',
             }
-        else:
+            
+        else: #create api key
             credentials = ('%s:%s' % (self.username, self.password))
             b64_credentials = base64.b64encode(credentials.encode('ascii'))
             headers = {
@@ -513,10 +450,10 @@ class loginserver():
             encoding = response.info().get_content_charset('utf-8') #load encoding if possible (default to utf-8)
             response.close()
         except urllib.error.HTTPError as error:
-            print("JSON ERROR")
             print(error.read())
-            JSON_object = json.loads(error.decode(encoding))
-            return JSON_object
+            exit()
+            return None #unneeded?
+        
         JSON_object = json.loads(data.decode(encoding))
         return JSON_object
 

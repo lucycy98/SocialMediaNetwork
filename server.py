@@ -99,23 +99,31 @@ class MainApp(object):
         """Check their name and password and send them either to the main page, or back to the main login screen."""
         logserv = loginserver.loginserver(username, password)
         error = logserv.getNewApiKey()
-        
         if error > 0:
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
-        print("there iwas no error lol")
+
         database.checkUsernamePassword(username, password)
         success = logserv.getSigningKey()
         if success > 0:
             print("testing error") #todo: deal with errors
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
-        peer = p2p.p2p(username, password, logserv.signing_key)
-        print("signing key from logserv is ")
-        print(logserv.signing_key)
+        logserv.reportUser("online")
+        peer = p2p.p2p(username, password, logserv.signing_key, logserv.apikey)
         cherrypy.session['username'] = username
         cherrypy.session['password'] = password
         cherrypy.session["logserv"] = logserv
         cherrypy.session["p2p"] = peer
         raise cherrypy.HTTPRedirect('/index')
+    
+    @cherrypy.expose
+    def checkpubkey(self):
+        """Check their name and password and send them either to the main page, or back to the main login screen."""
+        logserv = cherrypy.session.get("logserv", None)
+        if logserv is None:
+            pass
+        else:
+            logserv.testPublicKey()
+        raise cherrypy.HTTPRedirect('/index')    
        
     
     @cherrypy.expose
@@ -154,13 +162,12 @@ class MainApp(object):
 
     @cherrypy.expose
     def sendBroadcastMessage(self, message=None):
-        #p2p = cherrypy.session.get("p2p", None)
-        logserv = cherrypy.session.get("logserv", None)
+        p2p = cherrypy.session.get("p2p", None)
 
-        if logserv is None:
+        if p2p is None:
             pass
         else:
-            logserv.sendBroadcastMessage("HI")
+            p2p.sendBroadcastMessage("HELLO!!!")
         raise cherrypy.HTTPRedirect('/index')
 
     @cherrypy.expose

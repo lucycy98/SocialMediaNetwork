@@ -125,17 +125,7 @@ class MainApp(object):
         else:
             logserv.testPublicKey()
         raise cherrypy.HTTPRedirect('/index')    
-       
-    
-    @cherrypy.expose
-    def checkpubkey(self):
-        """Check their name and password and send them either to the main page, or back to the main login screen."""
-        logserv = cherrypy.session.get("logserv", None)
-        if logserv is None:
-            pass
-        else:
-            logserv.testPublicKey()
-        raise cherrypy.HTTPRedirect('/index')    
+          
 
     # LOGGING IN AND OUT
     @cherrypy.expose
@@ -207,13 +197,9 @@ class MainApp(object):
     @cherrypy.tools.json_out()
     def getMessages(self, username=None):
         print("GETTIGN !!!!! MESAGES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        all_conversations = database.getConversation("lche982", username) #TODO chaange
-        print(all_conversations)
-        for convo in all_conversations:
-            print(convo)
-        
-        return {}
-    
+        all_conversations = database.getConversation("lche982", username) #TODO chaange lche982
+        data = {"data":all_conversations}
+        return data
 
     @cherrypy.expose
     def updateLoginServerRecord(self):

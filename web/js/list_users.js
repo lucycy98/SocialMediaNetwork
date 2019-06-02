@@ -36,22 +36,28 @@ function clickfuncMessage(object) {
 
 function retrievePrivateMessages(username) {
 	var xhttp = new XMLHttpRequest();
-	document.getElementById("pm").innerHTML = "PM"
 	xhttp.onreadystatechange = function() {
 		
-        
 	if (this.readyState == 4 && this.status == 200) {
 		var obj = JSON.parse(this.response)
+		var messages = obj["data"];
+
+		if (messages.length == 0){
+			return;
+		}
+
 		Page = ""
 
-		for (var key in obj) { 
-			if (obj.hasOwnProperty(key)) {
-				username = key
-				status = obj[username]
-				Page += "<li><a id='" + username + "' href='#' onclick='clickfuncMessage(this.id)'>"+username+"</a> " + status + "</li>";
+		for (i=0; i < messages.length; i++){
+			messageObj = messages[i];
+			received = messageObj.sent;
+			if (received == "sent"){
+				Page += "<li><div class='blue_box'><span>" + messageObj.message + "</span></div></li>";
+			} else {
+				Page += "<li><div class='green_box'><span>" + messageObj.message + "</span></div></li>";
 			}
 		}
-		document.getElementById("all_users").innerHTML = Page;
+		document.getElementById("pm").innerHTML = Page;
 		}
 	};
 	query = "getMessages?username=" + username;
@@ -65,4 +71,4 @@ loadOnline()
 report()
 
 var myVar2 = setInterval(loadOnline, 11600);
-var myvar = setInterval(report, 1000) 
+var myvar = setInterval(report, 11000);

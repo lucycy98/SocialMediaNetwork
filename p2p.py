@@ -177,6 +177,7 @@ class p2p():
             }
         return headers
     
+    #need to decrypt it first and THEN 
     def testRecieveMessage(self, message):
         target_username = 'lche982'
         sender_username = 'admin' #after signing etc.

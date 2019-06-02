@@ -53,7 +53,8 @@ def getConversation(username, otherUsername):
                     UNION ALL
                 SELECT encrypted_message, sender_created_at, sent 
                 FROM receivedMessages 
-                WHERE target_username='{username}' AND sender_username='{target_username}'""".format(target_username=otherUsername, username=username)
+                WHERE target_username='{username}' AND sender_username='{target_username}'
+                ORDER BY sender_created_at ASC""".format(target_username=otherUsername, username=username)
     
     c.execute(query)
     result = c.fetchall()
@@ -61,7 +62,6 @@ def getConversation(username, otherUsername):
         closeDatabase(conn)
         return None
     data = resultToJSON(result, c)
-    printDatabase()
     closeDatabase(conn)
     return data
 

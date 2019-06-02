@@ -22,12 +22,13 @@
         </ul>
         
         <b>Users</b>
+        <a id='link' href='#' onclick='clickfuncMessage(this.id)'>link</a>
         <ul id='all_users' class=team-list>
-
+            <li><a href='#' onclick='clickfuncMessage(this)'>lche982</a>online</li>
         </ul>
 
     </div>
-    <div class='header box'>Messages</div>
+    <div id="msgheader" class='header box'>Messagjjes</div>
     <div class='messages box webkit-scrollbar webkit-scrollbar-thumb'>
         <ul class='message-list'>
             <li><div class='green_box'><span>Message from Lucy</span></div></li>
@@ -44,13 +45,15 @@
     </div>
 
     <div class='input box'>
-        <form name="messageform">
-            <input type="text" name="q" placeholder='Send a message'>
+        <form action="/sendPrivateMessage" method="post" enctype="multipart/form-data">
+            <input type="text" name="message" placeholder='Send a message'>
+            <input type="hidden" name="target_user" id="targetuser">
             <input type="submit" value="Send">
         </form>
     </div>
 </div>
 
+<script src="js/click.js"></script>
 <script src="js/list_users.js">
 </script>
 {% endblock %}

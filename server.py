@@ -103,11 +103,14 @@ class MainApp(object):
         if error > 0:
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
         print("there iwas no error lol")
+        database.checkUsernamePassword(username, password)
         success = logserv.getSigningKey()
         if success > 0:
             print("testing error") #todo: deal with errors
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
         peer = p2p.p2p(username, password, logserv.signing_key)
+        print("signing key from logserv is ")
+        print(logserv.signing_key)
         cherrypy.session['username'] = username
         cherrypy.session['password'] = password
         cherrypy.session["logserv"] = logserv
@@ -133,6 +136,7 @@ class MainApp(object):
         logserv = cherrypy.session.get("logserv", None)
         users = database.getAllUsers()
         Page = ""
+        data = {}
         if logserv is not None:
             logserv.getUsers()
 
@@ -141,21 +145,23 @@ class MainApp(object):
             status = user.get("status", None)
             if username is None or status is None:
                 continue
-            Page += "<li>" + username + " " + status + "</li>"
-        
-        json_return = {"all_users" : Page}
+            #Page += "<li>" + username + " " + status + "</li>"
+            data[username]=status
+        #json_return = {"all_users" : Page}
         print("return adata is ")
-        print(json_return)
-        return json_return
+        print(data)
+        return data
 
     @cherrypy.expose
     def sendBroadcastMessage(self, message=None):
-        p2p = cherrypy.session.get("p2p", None)
+        #p2p = cherrypy.session.get("p2p", None)
+        logserv = cherrypy.session.get("logserv", None)
 
-        if p2p is None or message is None:
+        if logserv is None:
             pass
         else:
-            p2p.sendBroadcastMessage(message)
+            logserv.sendBroadcastMessage("HI")
+        raise cherrypy.HTTPRedirect('/index')
 
     @cherrypy.expose
     @cherrypy.tools.json_out()
@@ -179,13 +185,16 @@ class MainApp(object):
 
     
     @cherrypy.expose
-    def sendPrivateMessage(self):
+    def sendPrivateMessage(self, message, target_user):
+        print("sending private message")
+        print(message)
+        print(target_user)
         p2p = cherrypy.session.get("p2p", None)
 
         if p2p is None:
             pass
         else:
-            p2p.sendPrivateMessage("ADMIN MESSG", "admin")
+            p2p.sendPrivateMessage(message, target_user)
         raise cherrypy.HTTPRedirect('/index') 
     
     @cherrypy.expose

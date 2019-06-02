@@ -12,8 +12,11 @@ def postJson(payload, headers, url):
         payload = json.dumps(payload).encode('utf-8')
     
     req = urllib.request.Request(url, data=payload, headers=headers)
+   
 
-    response = urllib.request.urlopen(req, timeout=2)
+    response = urllib.request.urlopen(req, timeout=10)
+    print("response is ")
+    print(response)
     data = response.read() # read the received bytes
     encoding = response.info().get_content_charset('utf-8') #load encoding if possible (default to utf-8)
     response.close()

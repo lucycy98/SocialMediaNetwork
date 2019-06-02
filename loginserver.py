@@ -182,22 +182,39 @@ class loginserver():
         JSON_object = helper.postJson(None, headers, url)
         response = JSON_object.get("response", None)
         if response == "ok":
+            print("GOT LOGIN SERVER STORED.")
             self.login_server_record = JSON_object.get("loginserver_record", None)
             database.addLoginServerRecord(self.username, self.login_server_record)
+            print(self.login_server_record)
             return 0
         else:
             return 1
+        
+
+    def getSigningKey(self):
+    
+        self.addPublicKey()
+        error = self.testPublicKey()
+        #self.addKeyPrivateData(private_data)
+        print(error)
+        self.getLoginServerRecord()
+        if error > 0:
+            print("an error occured in getting a public key from either the private data or created.")
+        return error 
 
     '''
     goes through the private data on the account, and checks if a signing key has already
     been created on the account. if yes, add that to the session. if not, create a new 
     signing key and update the private data.
     '''
-    def getSigningKey(self):
-        private_data = self.getPrivateData()
-        hex_key = private_data.get("prikeys", None)
-        error = 0
-        if hex_key is None:
+    def getSigningKeyOLD(self):
+        hex_key = None
+        private_data = {}
+        if os.path.isfile("secret.bin"): 
+            private_data = self.getPrivateData()
+            hex_key = private_data.get("prikeys", None)
+        
+        if hex_key is None or not os.path.isfile("secret.bin"):
             #create a public key and add to private data
             self.addPublicKey()
             error = self.testPublicKey()
@@ -207,6 +224,8 @@ class loginserver():
             self.signing_key = nacl.signing.SigningKey(hex_key, encoder=nacl.encoding.HexEncoder)
             self.hex_key = hex_key
             error = self.testPublicKey()
+        
+        self.getLoginServerRecord()
         
         if error > 0:
             print("an error occured in getting a public key from either the private data or created.")
@@ -254,7 +273,7 @@ class loginserver():
             self.signing_key = signing_key
             self.hex_key = hex_key
             self.login_server_record = login_server_record
-            #database.addLoginServerRecord(self.username, login_server_record)
+            database.addLoginServerRecord(self.username, login_server_record)
             return 0
         else:
             print ("Failed to add pubkey")
@@ -272,6 +291,42 @@ class loginserver():
             with open('secret.bin', "rb") as f:
                 hexed_key = f.read()
             return hexed_key       
+
+    def sendBroadcastMessage(self, message):
+        headers = self.createAuthorisedHeader(True)
+        loginserver_record = self.login_server_record
+        ts = str(time.time())
+        print(message)
+        print(self.username)
+        print(loginserver_record)
+        message_bytes = bytes(loginserver_record+message+ts, encoding='utf-8')
+        signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
+        signature_hex_str = signed.signature.decode('utf-8')
+        
+        payload = {
+            "loginserver_record": loginserver_record,
+            "message": str(message),
+            "sender_created_at": ts,
+            "signature": signature_hex_str
+        }
+
+        print(payload)
+
+        print("GETTING PERSON")
+        url = "http://cs302.kiwi.land/api/rx_broadcast"
+           
+        try:
+            JSON_object = self.postJson(payload, headers, url)
+            print(JSON_object)
+            response = JSON_object.get("response", None)
+            if response == "ok":
+                print("broadcast successfully sent")
+                print("url")
+            else:
+                print("response not OK")
+        except Exception as e:
+            print("FAILED TO BROADCAST!")
+            print(e)
 
     '''
     takes in a string as input, and encrypts it with the SecretBox
@@ -324,8 +379,13 @@ class loginserver():
             print(type(private_data_encr))
             private_data_bytes = bytes.fromhex(private_data_encr)
             print(type(private_data_bytes))
-            private_data_str = self.decryptString(private_data_bytes)
-            private_data = json.loads(private_data_str)
+            try: 
+                private_data_str = self.decryptString(private_data_bytes)
+                private_data = json.loads(private_data_str)
+                private_data = {}
+            except nacl.exceptions.CryptoError as e:
+                print(e) 
+            
         return private_data
 
     '''
@@ -421,17 +481,17 @@ class loginserver():
             return None
 
         #create HTTP BASIC authorization header
-        if self.username is not None: #change!!! TODO
+        if self.apikey is not None: #change!!! TODO
+            headers = {
+                'X-username': self.username,
+                'X-apikey' : self.apikey,
+                'Content-Type' : 'application/json; charset=utf-8',
+            }
+        else:
             credentials = ('%s:%s' % (self.username, self.password))
             b64_credentials = base64.b64encode(credentials.encode('ascii'))
             headers = {
                 'Authorization': 'Basic %s' % b64_credentials.decode('ascii'),
-                'Content-Type' : 'application/json; charset=utf-8',
-            }
-        else: #create api key
-            headers = {
-                'X-username': self.username,
-                'X-apikey' : self.apikey,
                 'Content-Type' : 'application/json; charset=utf-8',
             }
         return headers

@@ -240,6 +240,18 @@ def getAllUsers():
     closeDatabase(conn)
     return data
 
+def getAllUsersStatus(status):
+    conn, c = loadDatabase()
+    c.execute("SELECT * FROM users WHERE status = '{a}'".format(a=status))
+    result = c.fetchall()
+    if len(result) == 0:
+        closeDatabase(conn)
+        return None
+    data = resultToJSON(result, c)
+    closeDatabase(conn)
+    return data
+
+
 def getAllUsersCondition(condition):
     conn, c = loadDatabase()
 

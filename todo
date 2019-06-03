@@ -40,3 +40,6 @@ store all broadcasts recieved by the server since then.
 
 
 if we find that the signature is forged, do we still want to save it or discard it to send to in api/checkmessages?
+
+find out how to return response codes
+better error handling

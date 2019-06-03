@@ -36,3 +36,28 @@ def verifyMessageSignature(messageString, pubkey, signatureString):
     pubkey_hex = bytes(pubkey,encoding='utf-8')
     verify_key = nacl.signing.VerifyKey(pubkey_hex, encoder=nacl.encoding.HexEncoder)
     verify_key.verify(message_bytes_hex, signature_bytes, encoder=nacl.encoding.HexEncoder)
+
+def breakLoginRecord(loginserver_record):
+    login_info = loginserver_record.split(',')
+    username = login_info[0]
+    pubkey = login_info[1]
+    server_time = login_info[2]
+    signature_str = login_info[3]
+    return username, pubkey, server_time, signature_str
+
+def generateResponseJSON(error):
+    payload = {}
+    if error == "ok":
+        payload["response"] = "ok"
+    else: 
+        payload["response"] = "error"
+        payload["message"] = error
+    return payload
+
+def getUserData(username):
+    user = database.getUserData(username)
+        user_address = user.get("address", None)
+        user_location = user.get("location", None)
+        user_pubkey = user.get("pubkey", None)
+    return user_pubkey, user_address, user_location
+

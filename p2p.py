@@ -43,25 +43,6 @@ class p2p():
         }
 
         database.addBroadCast(loginserver_record, message, ts, signature_hex_str, self.username)
-
-        login_info = loginserver_record.split(',')
-        username = login_info[0]
-        pubkey = login_info[1]
-        print(pubkey)
-        server_time = login_info[2]
-        signature_str = login_info[3]
-
-        signature_bytes = bytes(signature_hex_str, encoding='utf-8')
-        print("lucys")
-        print(signature_bytes)
-        
-        message= bytes(loginserver_record+message+ts, encoding='utf-8')
-        message_bytes_hex = bytes(message.hex(), encoding='utf-8')
-        print(message_bytes_hex)
-        pubkey_hex = bytes(pubkey,encoding='utf-8')
-        verify_key = nacl.signing.VerifyKey(pubkey_hex, encoder=nacl.encoding.HexEncoder)
-        print(verify_key.verify(message_bytes_hex, signature_bytes, encoder=nacl.encoding.HexEncoder))
-
     
         print("GETTING PERSON")
         all_users = database.getAllUsers()
@@ -98,7 +79,7 @@ class p2p():
         user_location = user.get("location", None)
         user_pubkey = user.get("pubkey", None)
         
-        encr_message = self.encryptMessage(message, user_pubkey)
+        encr_message = helper.encryptMessage(message, user_pubkey)
         loginserver_record = database.getUserInfo(self.username, "loginrecord")        
         ts = str(time.time())
         message_bytes = bytes(loginserver_record+user_pubkey+send_user+encr_message+ts, encoding='utf-8')
@@ -137,17 +118,6 @@ class p2p():
                 print("response not OK")
         except:
             print("FAILED TO SEND ADMIN MESAGE")
-
-    def encryptMessage(self, message, publickey_hex):
-        #publickey_hex contains the target publickey
-        #using the nacl.encoding.HexEncoder format
-        verifykey = nacl.signing.VerifyKey(publickey_hex, encoder=nacl.encoding.HexEncoder)
-        publickey = verifykey.to_curve25519_public_key()
-        sealed_box = nacl.public.SealedBox(publickey)
-        message_bytes = bytes(message, encoding='utf-8')
-        encrypted = sealed_box.encrypt(message_bytes, encoder=nacl.encoding.HexEncoder)
-        message_encr = encrypted.decode('utf-8')
-        return message_encr
 
             
 
@@ -211,10 +181,8 @@ class p2p():
         message = "test Message"
         user = database.getUserData(target_username)
         user_pubkey = user.get("pubkey", None)
-        
-        encr_message = self.encryptMessage(message, user_pubkey)
+        encr_message = helper.encryptMessage(message, user_pubkey)
         loginserver_record = database.getUserInfo(sender_username, "loginrecord")        
-        print("!!!!!!!!!!!!!!!!!!!!!!!!TESTING RECIEVE!!!!!!!!!!!!!!!!!!!!!!!")
         ts = str(time.time())
         database.addReceivedMessage(target_username, user_pubkey, encr_message, ts, message, sender_username) #sending myself a message.
         

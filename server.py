@@ -114,8 +114,6 @@ class MainApp(object):
             output = template.render()
         return output
 
-        
-      
     ################################################### INTERNAL API ####################################################
 
     # LOGGING IN AND OUT
@@ -266,6 +264,20 @@ class MainApp(object):
             logserv.reportUser("offline")
             cherrypy.lib.sessions.expire()
         raise cherrypy.HTTPRedirect('/')
+    
+    @cherrypy.expose
+    def createGroupChat(self, usernames=None):
+        print("sending private message")
+        print(message)
+        print(target_user)
+        p2p = cherrypy.session.get("p2p", None)
+        if p2p is None:
+            pass
+        else:
+            p2p.createGroupChat(usernames)
+        #raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=target_user)) 
+
+
 
 
 

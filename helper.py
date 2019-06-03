@@ -56,8 +56,20 @@ def generateResponseJSON(error):
 
 def getUserData(username):
     user = database.getUserData(username)
-        user_address = user.get("address", None)
-        user_location = user.get("location", None)
-        user_pubkey = user.get("pubkey", None)
+    user_address = user.get("address", None)
+    user_location = user.get("location", None)
+    user_pubkey = user.get("pubkey", None)
     return user_pubkey, user_address, user_location
+
+def encryptMessage(message, publickey_hex):
+    #publickey_hex contains the target publickey
+    #using the nacl.encoding.HexEncoder format
+    verifykey = nacl.signing.VerifyKey(publickey_hex, encoder=nacl.encoding.HexEncoder)
+    publickey = verifykey.to_curve25519_public_key()
+    sealed_box = nacl.public.SealedBox(publickey)
+    message_bytes = bytes(message, encoding='utf-8')
+    encrypted = sealed_box.encrypt(message_bytes, encoder=nacl.encoding.HexEncoder)
+    message_encr = encrypted.decode('utf-8')
+    return message_encr
+
 

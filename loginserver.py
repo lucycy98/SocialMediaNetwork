@@ -24,13 +24,14 @@ class loginserver():
         self.apikey = None
         self.login_server_record = None
         self.getConnectionAddress()
+        self.hex_key = None
         #self.getNewApiKey()
 
     def ping(self):
         headers = self.createAuthorisedHeader(True)
         url = "http://cs302.kiwi.land/api/ping"
         JSON_object = helper.postJson(None, headers, url)
-        print(JSON_object)
+
         response = JSON_object.get("response", None)
         if response == "ok":
             print("valid user name and password")
@@ -68,7 +69,7 @@ class loginserver():
         }
 
         JSON_object = helper.postJson(payload, headers, url)
-        print(JSON_object)
+
         response = JSON_object.get("response", None)
         if response == "ok":
             print("reported successfully.")
@@ -76,6 +77,42 @@ class loginserver():
         else:
             print ("error in reporting")
             return 1
+    
+
+    '''
+    goes through the private data on the account, and checks if a signing key has already
+    been created on the account. if yes, add that to the session. if not, create a new 
+    signing key and update the private data.
+    '''
+    def getSigningKey(self):
+        private_data = {}
+        if not os.path.isfile("secret.bin"):
+            #if hex_key is None:
+            #create a public key and add to private data
+            self.addPublicKey()
+            error = self.testPublicKey()
+            self.addKeyPrivateData(private_data)
+            print("HEX KEY IS NONE")
+        else:
+            private_data = self.getPrivateData()
+            print("private data is")
+            print(private_data)
+            hex_key = private_data.get("prikeys", None)
+            if hex_key is None:
+                self.addPublicKey()
+                error = self.testPublicKey()
+                self.addKeyPrivateData(private_data)
+                print("HEX KEY IS NONE")
+            error = 0
+            self.signing_key = nacl.signing.SigningKey(hex_key, encoder=nacl.encoding.HexEncoder)
+            self.hex_key = hex_key
+            error = self.testPublicKey()
+        self.getLoginServerRecord()
+        print("login server is")
+        print(self.login_server_record)
+        if error > 0:
+            print("an error occured in getting a public key from either the private data or created.")
+        return error 
 
     '''
     gets the ACTIVE users who have done a report in the last 5 minutes to the login server. 
@@ -85,14 +122,14 @@ class loginserver():
         headers = self.createAuthorisedHeader(True)
         url = "http://cs302.kiwi.land/api/list_users"
         JSON_object = helper.postJson(None, headers, url)
-        print(JSON_object)
+
         response = JSON_object.get("response", None)
         if response == 'ok':
             self.users = JSON_object.get("users", None)
             if self.users is not None:
                 self.loadUsersIntoDatabase(self.users)
-            print("")
-            print(type(self.users))
+          
+          
             return 0   
         else:
             return 1
@@ -110,7 +147,7 @@ class loginserver():
             database.updateUsersInfo(username, user.get("connection_address", None), user.get("connection_location", None), user.get("incoming_pubkey", None), user.get("connection_updated_at", None), status)
 
         all_users = database.getAllUsers()
-        print(all_users)
+
         for user in all_users:
             username = user.get("username", None)
             if username is None: 
@@ -130,7 +167,7 @@ class loginserver():
         url = "http://cs302.kiwi.land/api/list_users"
         req = "?pubkey=" + pubkey_str
         JSON_object = helper.postJson(None, headers, url+req)
-        print(JSON_object)
+
         response = JSON_object.get("response", None)
         if response == 'ok':
             self.users = JSON_object.get("users", None)
@@ -156,7 +193,7 @@ class loginserver():
         message_bytes = bytes(pubkey_hex_str, encoding='utf-8')
         signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
         signature_hex_str = signed.signature.decode('utf-8')
-        print(signature_hex_str)
+
 
         headers = self.createAuthorisedHeader(True)
         payload = {
@@ -165,7 +202,7 @@ class loginserver():
         }
         
         JSON_object = helper.postJson(payload, headers, url)
-        print(JSON_object)
+
         response = JSON_object.get("response", None)
         signature = JSON_object.get("signature", None)
         if response == "ok" and signature == "ok":
@@ -190,37 +227,6 @@ class loginserver():
         else:
             return 1
 
-    '''
-    goes through the private data on the account, and checks if a signing key has already
-    been created on the account. if yes, add that to the session. if not, create a new 
-    signing key and update the private data.
-    '''
-    def getSigningKey(self):
-        private_data = {}
-        if not os.path.isfile("secret.bin"):
-            #if hex_key is None:
-            #create a public key and add to private data
-            self.addPublicKey()
-            error = self.testPublicKey()
-            self.addKeyPrivateData(private_data)
-            print("HEX KEY IS NONE")
-        else:
-            private_data = self.getPrivateData()
-            hex_key = private_data.get("prikeys", None)
-            if hex_key is None:
-                self.addPublicKey()
-                error = self.testPublicKey()
-                self.addKeyPrivateData(private_data)
-                print("HEX KEY IS NONE")
-            error = 0
-            self.signing_key = nacl.signing.SigningKey(hex_key, encoder=nacl.encoding.HexEncoder)
-            self.hex_key = hex_key
-            error = self.testPublicKey()
-
-        self.getLoginServerRecord()
-        if error > 0:
-            print("an error occured in getting a public key from either the private data or created.")
-        return error 
         
     '''
     adds the public key to the central server to associate that public key. 
@@ -242,8 +248,7 @@ class loginserver():
         signed = signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
         signature_hex_str = signed.signature.decode('utf-8')
 
-        print("authorise signature here is")
-        print(signature_hex_str)
+
 
         headers = self.createAuthorisedHeader(True)
         payload = {
@@ -253,11 +258,11 @@ class loginserver():
         }
         
         JSON_object = helper.postJson(payload, headers, url)
-        print(JSON_object)
+
         response = JSON_object.get("response", None)
         login_server_record = JSON_object.get("loginserver_record", None)
-        print("LOGIN SEVER RECORD IS ")
-        print(login_server_record)
+     
+     
 
         if response == "ok" and login_server_record is not None:
             print("pubkey added successfully!")
@@ -274,7 +279,6 @@ class loginserver():
     def getSecretKey(self):
         if not os.path.isfile("secret.bin"): #if key has not been generated before
             key = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
-            print(type(key))
             with open("secret.bin", "wb") as f:
                 f.write(key)
             return key
@@ -289,14 +293,11 @@ class loginserver():
     def encryptString(self, input):
         input_bytes = bytes(input, encoding='utf-8') 
         key = self.getSecretKey()
-        print("key")
-        print(key)
+      
         box = nacl.secret.SecretBox(key)
         nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
         encrypted = box.encrypt(input_bytes, nonce)
-        print("encrypted is ")
-        print(encrypted)
-        print(type(encrypted))
+    
         return encrypted
 
     '''
@@ -305,14 +306,14 @@ class loginserver():
     #TODO: error message when the key cannot decrypt the message.
     def decryptString(self, input):
         key = self.getSecretKey()
-        print("key")
-        print(key)
+     
+     
         box = nacl.secret.SecretBox(key)
-        print("trying to decrypt the message plaintext:")
+
         plaintext = box.decrypt(input) #should be bytes
-        print(plaintext)
+
         data = plaintext.decode("utf-8") 
-        print(data)
+
         return data
 
     '''
@@ -325,15 +326,11 @@ class loginserver():
 
         JSON_object = helper.postJson(None, headers, url_get)
         response = JSON_object.get("response", None)
-        print(JSON_object)
+
         private_data = {}
         if response == "ok":
-            print("private data is ")
-            print(response)
             private_data_encr = JSON_object.get("privatedata")
-            print(type(private_data_encr))
             private_data_bytes = bytes.fromhex(private_data_encr)
-            print(type(private_data_bytes))
             private_data_str = self.decryptString(private_data_bytes)
             private_data = json.loads(private_data_str)
         return private_data
@@ -347,11 +344,7 @@ class loginserver():
         url_add = "http://cs302.kiwi.land/api/add_privatedata"
             
         headers = self.createAuthorisedHeader(True)
-        
-        print("HEX KEY IS ")
-        
-        print(self.hex_key)
-        print(type(self.hex_key))
+    
         ts = str(time.time())
 
         private_data["prikeys"] = self.hex_key.decode('utf-8')
@@ -372,7 +365,6 @@ class loginserver():
         }
 
         JSON_object = helper.postJson(payload, headers, url_add)
-        print(JSON_object)
         response = JSON_object.get("response", None)
         if response == "ok":
             print("added to private data successfully!")
@@ -388,11 +380,10 @@ class loginserver():
         url = "http://cs302.kiwi.land/api/load_new_apikey"
         headers = self.createAuthorisedHeader(True)
         JSON_object = helper.postJson(None, headers, url)
-        print(JSON_object)
+
         response = JSON_object.get("response", None)
         if response == "ok":
             apikey = JSON_object.get("api_key", None)
-            print(apikey)
             self.apikey = apikey
         if apikey is None or response != "ok":
             print("NO API KEY")

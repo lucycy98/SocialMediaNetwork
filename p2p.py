@@ -28,7 +28,13 @@ class p2p():
         ts = str(time.time())
         message_bytes = bytes(loginserver_record+message+ts, encoding='utf-8')
         signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
+        print("signed")
+        print(signed.signature)
+        print(signed.message)
         signature_hex_str = signed.signature.decode('utf-8')
+
+        print("")
+        
         payload = {
             "loginserver_record": loginserver_record,
             "message": message,
@@ -36,11 +42,31 @@ class p2p():
             "signature": signature_hex_str
         }
 
+        database.addBroadCast(loginserver_record, message, ts, signature_hex_str, self.username)
+
+        login_info = loginserver_record.split(',')
+        username = login_info[0]
+        pubkey = login_info[1]
+        print(pubkey)
+        server_time = login_info[2]
+        signature_str = login_info[3]
+
+        signature_bytes = bytes(signature_hex_str, encoding='utf-8')
+        print("lucys")
+        print(signature_bytes)
+        
+        message= bytes(loginserver_record+message+ts, encoding='utf-8')
+        message_bytes_hex = bytes(message.hex(), encoding='utf-8')
+        print(message_bytes_hex)
+        pubkey_hex = bytes(pubkey,encoding='utf-8')
+        verify_key = nacl.signing.VerifyKey(pubkey_hex, encoder=nacl.encoding.HexEncoder)
+        print(verify_key.verify(message_bytes_hex, signature_bytes, encoder=nacl.encoding.HexEncoder))
+
+    
         print("GETTING PERSON")
         all_users = database.getAllUsers()
         print(all_users)
 
-        database.addBroadCast(loginserver_record, message, ts, signature_hex_str, self.username)
         '''
         for user in all_users:
             user_address = user.get("address", None)
@@ -74,11 +100,11 @@ class p2p():
         
         encr_message = self.encryptMessage(message, user_pubkey)
         loginserver_record = database.getUserInfo(self.username, "loginrecord")        
-        print(loginserver_record)
         ts = str(time.time())
         message_bytes = bytes(loginserver_record+user_pubkey+send_user+encr_message+ts, encoding='utf-8')
         signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
         signature_hex_str = signed.signature.decode('utf-8')
+        
 
         payload = {
             "loginserver_record": loginserver_record,

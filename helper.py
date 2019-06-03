@@ -1,6 +1,10 @@
 
 import json
 import urllib.request
+import database
+import time
+import nacl.encoding
+import nacl.signing
 
 '''
 sends a POST/GET request to the URL endpoint specified.
@@ -24,3 +28,11 @@ def postJson(payload, headers, url):
     
     JSON_object = json.loads(data.decode(encoding))
     return JSON_object
+
+def verifyMessageSignature(messageString, pubkey, signatureString):
+    signature_bytes = bytes(signatureString, encoding='utf-8')
+    message= bytes(messageString, encoding='utf-8')
+    message_bytes_hex = bytes(message.hex(),encoding='utf-8')
+    pubkey_hex = bytes(pubkey,encoding='utf-8')
+    verify_key = nacl.signing.VerifyKey(pubkey_hex, encoder=nacl.encoding.HexEncoder)
+    verify_key.verify(message_bytes_hex, signature_bytes, encoder=nacl.encoding.HexEncoder)

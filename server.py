@@ -100,8 +100,6 @@ class MainApp(object):
                 output = template.render(username=None, messages=[])
         return output
         
-
-            
         
     @cherrypy.expose
     def login(self, bad_attempt=None):
@@ -118,9 +116,9 @@ class MainApp(object):
 
     # LOGGING IN AND OUT
     @cherrypy.expose
-    def signin(self, username=None, password=None):
+    def signin(self, username=None, password=None, password2=None):
         """Check their name and password and send them either to the main page, or back to the main login screen."""
-        logserv = loginserver.loginserver(username, password)
+        logserv = loginserver.loginserver(username, password, password2)
         error = logserv.getNewApiKey()
         if error > 0:
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
@@ -166,9 +164,7 @@ class MainApp(object):
             status = user.get("status", None)
             if username is None or status is None:
                 continue
-            #Page += "<li>" + username + " " + status + "</li>"
             data[username]=status
-        #json_return = {"all_users" : Page}
         print("return adata is ")
         print(data)
         return data

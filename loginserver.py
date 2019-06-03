@@ -14,7 +14,7 @@ import os
 import helper
 
 class loginserver():
-    def __init__(self, username, password):
+    def __init__(self, username, password, password2):
         self.username = username
         self.password = password
         self.signing_key = None
@@ -25,6 +25,7 @@ class loginserver():
         self.login_server_record = None
         self.getConnectionAddress()
         self.hex_key = None
+        self.password2 = password2
         #self.getNewApiKey()
 
     def ping(self):
@@ -86,27 +87,16 @@ class loginserver():
     '''
     def getSigningKey(self):
         private_data = {}
-        if not os.path.isfile("secret.bin"):
-            #if hex_key is None:
-            #create a public key and add to private data
+        private_data = self.getPrivateData()
+        print("private data is")
+        print(private_data)            
+        hex_key = private_data.get("prikeys", None)
+        if hex_key is None:
+            print("HEX KEY IS NONE")
             self.addPublicKey()
             error = self.testPublicKey()
-            self.addKeyPrivateData(private_data)
-            print("HEX KEY IS NONE")
-        else:
-            private_data = self.getPrivateData()
-            print("private data is")
-            print(private_data)
-            hex_key = private_data.get("prikeys", None)
-            if hex_key is None:
-                self.addPublicKey()
-                error = self.testPublicKey()
+            if error == 0:
                 self.addKeyPrivateData(private_data)
-                print("HEX KEY IS NONE")
-            error = 0
-            self.signing_key = nacl.signing.SigningKey(hex_key, encoder=nacl.encoding.HexEncoder)
-            self.hex_key = hex_key
-            error = self.testPublicKey()
         self.getLoginServerRecord()
         print("login server is")
         print(self.login_server_record)
@@ -248,8 +238,6 @@ class loginserver():
         signed = signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
         signature_hex_str = signed.signature.decode('utf-8')
 
-
-
         headers = self.createAuthorisedHeader(True)
         payload = {
             "pubkey" : pubkey_hex_str,
@@ -262,8 +250,6 @@ class loginserver():
         response = JSON_object.get("response", None)
         login_server_record = JSON_object.get("loginserver_record", None)
      
-     
-
         if response == "ok" and login_server_record is not None:
             print("pubkey added successfully!")
             self.signing_key = signing_key
@@ -274,47 +260,6 @@ class loginserver():
         else:
             print ("Failed to add pubkey")
             return 1
-
-    '''produces the symmetric key'''
-    def getSecretKey(self):
-        if not os.path.isfile("secret.bin"): #if key has not been generated before
-            key = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
-            with open("secret.bin", "wb") as f:
-                f.write(key)
-            return key
-        else:
-            with open('secret.bin', "rb") as f:
-                hexed_key = f.read()
-            return hexed_key       
-
-    '''
-    takes in a string as input, and encrypts it with the SecretBox
-    '''
-    def encryptString(self, input):
-        input_bytes = bytes(input, encoding='utf-8') 
-        key = self.getSecretKey()
-      
-        box = nacl.secret.SecretBox(key)
-        nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
-        encrypted = box.encrypt(input_bytes, nonce)
-    
-        return encrypted
-
-    '''
-    takes in an encrypted messge, and returns a decryped version (string)
-    '''
-    #TODO: error message when the key cannot decrypt the message.
-    def decryptString(self, input):
-        key = self.getSecretKey()
-     
-     
-        box = nacl.secret.SecretBox(key)
-
-        plaintext = box.decrypt(input) #should be bytes
-
-        data = plaintext.decode("utf-8") 
-
-        return data
 
     '''
     returns the private data from get_privatedata in a JSON format
@@ -331,8 +276,14 @@ class loginserver():
         if response == "ok":
             private_data_encr = JSON_object.get("privatedata")
             private_data_bytes = bytes.fromhex(private_data_encr)
-            private_data_str = self.decryptString(private_data_bytes)
-            private_data = json.loads(private_data_str)
+            key = helper.getSymmetricKeyFromPassword(self.password2)
+            try:
+                private_data_str = helper.decryptStringKey(key, private_data_bytes)
+            except Exception as e: #TODO change to specific exception
+                print(e)
+                return {}
+            else: 
+                private_data = json.loads(private_data_str)
         return private_data
 
     '''
@@ -349,7 +300,8 @@ class loginserver():
 
         private_data["prikeys"] = self.hex_key.decode('utf-8')
         private_data_str = json.dumps(private_data)
-        private_data_encr = self.encryptString(private_data_str) #encrypted private data
+        key = helper.getSymmetricKeyFromPassword(self.password2)
+        private_data_encr = helper.encryptStringKey(key, private_data_str) #encrypted private data
         private_data_hex_str = private_data_encr.hex() #hexed private data
 
         #creating message and then signed

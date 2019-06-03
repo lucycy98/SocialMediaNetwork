@@ -5,6 +5,8 @@ import database
 import time
 import nacl.encoding
 import nacl.signing
+import base64
+from nacl import pwhash, secret, utils
 
 '''
 sends a POST/GET request to the URL endpoint specified.
@@ -71,5 +73,37 @@ def encryptMessage(message, publickey_hex):
     encrypted = sealed_box.encrypt(message_bytes, encoder=nacl.encoding.HexEncoder)
     message_encr = encrypted.decode('utf-8')
     return message_encr
+
+def getSymmetricKeyFromPassword(password):
+    password = bytes(password, encoding='utf-8')
+    kdf = pwhash.argon2i.kdf
+    salt = utils.random(pwhash.argon2i.SALTBYTES)
+    ops = pwhash.argon2i.OPSLIMIT_SENSITIVE
+    mem = pwhash.argon2i.MEMLIMIT_SENSITIVE
+    key = kdf(secret.SecretBox.KEY_SIZE, password, salt, opslimit=ops, memlimit=mem)
+    return key
+
+
+'''
+takes in a string as input, and encrypts it with the SecretBox
+'''
+def encryptStringKey(key, input):
+    input_bytes = bytes(input, encoding='utf-8')     
+    box = nacl.secret.SecretBox(key)
+    nonce = nacl.utils.random(nacl.secret.SecretBox.NONCE_SIZE)
+    encrypted = box.encrypt(input_bytes, nonce)
+
+    return encrypted
+
+'''
+takes in an encrypted messge, and returns a decryped version (string)
+'''
+#TODO: error message when the key cannot decrypt the message.
+def decryptStringKey(key, input):  
+    box = nacl.secret.SecretBox(key)
+    plaintext = box.decrypt(input) #should be bytes
+    data = plaintext.decode("utf-8") 
+
+    return data
 
 

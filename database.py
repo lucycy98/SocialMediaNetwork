@@ -9,11 +9,13 @@ def closeDatabase(conn):
 def initialiseTable(c, conn):
     # Creating a table for message archive and accounts info storage
     c.execute("CREATE TABLE users (username STRING PRIMARY KEY, address STRING, location STRING, pubkey STRING, lastReport STRING, status STRING)")
-    c.execute("CREATE TABLE userhashes (username STRING NOT NULL, hash STRING, loginrecord STRING)")  
+    c.execute("CREATE TABLE userhashes (username STRING NOT NULL, hash STRING, loginrecord STRING, generatedKey String)")  
     
     c.execute("CREATE TABLE broadcasts (loginserver_record STRING NOT NULL, message STRING, sender_created_at INT(11), signature STRING, username STRING)") 
     c.execute("CREATE TABLE receivedMessages (target_username STRING NOT NULL, target_pubkey STRING NOT NULL, encrypted_message STRING, sender_created_at INT(11), signature STRING, sender_username STRING, sent STRING)") 
     c.execute("CREATE TABLE sentMessages (username STRING NOT NULL, target_username STRING, message STRING, sender_created_at INT(11), sent STRING)") 
+
+    c.execute("CREATE TABLE groupMessages ()")
 
     conn.commit()
 

@@ -5,12 +5,11 @@ import nacl.signing
 import base64
 from nacl import pwhash, secret, utils
 
-
 password = b"password"
 message = b"This is a message for Bob's eyes only"
 
 kdf = pwhash.argon2i.kdf
-salt = utils.random(pwhash.argon2i.SALTBYTES)
+salt = pwhash.argon2i.SALTBYTES
 ops = pwhash.argon2i.OPSLIMIT_SENSITIVE
 mem = pwhash.argon2i.MEMLIMIT_SENSITIVE
 
@@ -27,8 +26,10 @@ encrypted = Alices_box.encrypt(message, nonce)
 # Bob is able to derive the correct key to decrypt the message
 
 
+
 Bobs_key = kdf(secret.SecretBox.KEY_SIZE, password, salt,
                opslimit=ops, memlimit=mem)
+
 Bobs_box = secret.SecretBox(Bobs_key)
 received = Bobs_box.decrypt(encrypted)
 print(received.decode('utf-8'))

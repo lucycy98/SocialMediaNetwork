@@ -8,6 +8,8 @@ import nacl.signing
 import base64
 from nacl import pwhash, secret, utils
 
+salt = b'\xa3\x95\\\xec\x1cFpr8\xb7\x92\x7f\x18%)\x88'
+
 '''
 sends a POST/GET request to the URL endpoint specified.
 returns the JSON response
@@ -77,12 +79,10 @@ def encryptMessage(message, publickey_hex):
 def getSymmetricKeyFromPassword(password):
     password = bytes(password, encoding='utf-8')
     kdf = pwhash.argon2i.kdf
-    salt = utils.random(pwhash.argon2i.SALTBYTES)
     ops = pwhash.argon2i.OPSLIMIT_SENSITIVE
     mem = pwhash.argon2i.MEMLIMIT_SENSITIVE
     key = kdf(secret.SecretBox.KEY_SIZE, password, salt, opslimit=ops, memlimit=mem)
     return key
-
 
 '''
 takes in a string as input, and encrypts it with the SecretBox

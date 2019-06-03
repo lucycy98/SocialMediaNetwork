@@ -118,6 +118,12 @@ class p2p():
                 print("response not OK")
         except:
             print("FAILED TO SEND ADMIN MESAGE")
+    
+    def createGroupChat(self, target_usernames):
+        print("creating group chats")
+        
+
+
 
             
 

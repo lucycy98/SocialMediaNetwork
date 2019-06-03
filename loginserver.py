@@ -86,6 +86,7 @@ class loginserver():
     signing key and update the private data.
     '''
     def getSigningKey(self):
+        error = 0
         private_data = {}
         private_data = self.getPrivateData()
         print("private data is")
@@ -97,6 +98,10 @@ class loginserver():
             error = self.testPublicKey()
             if error == 0:
                 self.addKeyPrivateData(private_data)
+        else:
+            self.signing_key = nacl.signing.SigningKey(hex_key, encoder=nacl.encoding.HexEncoder)
+            self.hex_key = hex_key
+            error = self.testPublicKey()
         self.getLoginServerRecord()
         print("login server is")
         print(self.login_server_record)

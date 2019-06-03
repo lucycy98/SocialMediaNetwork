@@ -9,7 +9,7 @@ password = b"password"
 message = b"This is a message for Bob's eyes only"
 
 kdf = pwhash.argon2i.kdf
-salt = pwhash.argon2i.SALTBYTES
+salt = utils.random(pwhash.argon2i.SALTBYTES)
 ops = pwhash.argon2i.OPSLIMIT_SENSITIVE
 mem = pwhash.argon2i.MEMLIMIT_SENSITIVE
 
@@ -17,6 +17,7 @@ Alices_key = kdf(secret.SecretBox.KEY_SIZE, password, salt,
                  opslimit=ops, memlimit=mem)
 Alices_box = secret.SecretBox(Alices_key)
 nonce = utils.random(secret.SecretBox.NONCE_SIZE)
+print(salt)
 
 encrypted = Alices_box.encrypt(message, nonce)
 

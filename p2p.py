@@ -40,8 +40,8 @@ class p2p():
         all_users = database.getAllUsers()
         print(all_users)
 
-        database.addBroadCast(self.username, message, ts, signature_hex_str)
-
+        database.addBroadCast(loginserver_record, message, ts, signature_hex_str, self.username)
+        '''
         for user in all_users:
             user_address = user.get("address", None)
             if user_address is None:
@@ -62,6 +62,7 @@ class p2p():
                     print("response not OK")
             except:
                 print("FAILED TO BROADCAST!")
+                '''
     
     def sendPrivateMessage(self, message, send_user):
         headers = self.createAuthorisedHeader(True)

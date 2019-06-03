@@ -9,55 +9,66 @@
 {% block body %}
 
 <div id=profile_cont>
-    <h1>Lucy Chen</h1>
-    <p>@lche982</p>
-    <img class='icons' src=img/like.svg style="width: 1.5em">
+
+    <h1>
+        {{ profile['username'] }}
+        {% if not isOwn %}
+            <img class='icons' src=img/block.svg style="width: 1em; padding-left: 1em;">
+        {% endif %}
+    </h1>
+    <table class=profile-table>
+        <tr>
+            <td class='head'>Connection address</td>
+            <td class='cell-txt'>{{ profile['address'] }}</td> 
+        </tr>
+        <tr>
+                <td class='head'>Connection location</td>
+                <td class='cell-txt'>{{ profile['location'] }}</td> 
+        </tr>
+        <tr>
+                <td class='head'>Public key</td>
+                <td class='cell-txt'>{{ profile['pubkey'] }}</td> 
+        </tr>
+        <tr>
+                <td class='head'>Status</td>
+                <td class='cell-txt'>{{ profile['status'] }}</td>
+        </tr>
+    </table>
 
 
 </div>
 
 <div id="container">
-
+    {% if isOwn %}
     <div class='block_container'>
-        <div class='cont'>
-            <form name="messageform">
-                <input type="text" name="q" placeholder='Make a public broadcast.'> </br></br>
-                <input type="submit" value="Send">
-            </form>
+            <div class='cont'>
+                <form name="messageform">
+                    <input type="text" name="q" placeholder='Make a public broadcast.'> </br></br>
+                    <input type="submit" value="Send">
+                </form>
+            </div>
         </div>
-    </div>
+    {% endif %}
 
+    {% if broadcasts|length == 0 %}
     <div class='block_container'>
-        <div class='cont'>
-            <h3>@lche982</h3>
-            <p>Hello this is a tweet heheheheh</p> </br>
-            <img class='icons' src=img/like.svg style="width: 1.5em">
+            <div class='cont'>
+                This user has not made any broadcasts.
+            </div>
         </div>
+    
+    {% endif %}
 
+    {% for broadcast in broadcasts %}
 
-    </div>
-
-    <div class='block_container'>
-        <div class='cont'>
-            <h3>@lche982</h3>
-            <p>Hello this is a tweet heheheheh</p> </br>
-            <img class='icons' src=img/like.svg style="width: 1.5em">
+        <div class='block_container'>
+            <div class='cont'>
+                <h3>{{profile["username"]}}</h3>
+                <p>{{broadcast["message"]}}</p> </br>
+                <img class='icons' src=img/like.svg style="width: 1.5em">
+            </div>
         </div>
-
-
-    </div>
-
-
-    <div class='block_container'>
-        <div class='cont'>
-            <h3>@lche982</h3>
-            <p>Hello this is a tweet heheheheh</p> </br>
-            <img class='icons' src=img/like.svg style="width: 1.5em">
-        </div>
-
-
-    </div>
-
+    {%endfor%}
 
 
 </div>

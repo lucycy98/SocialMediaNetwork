@@ -22,25 +22,32 @@
         </ul>
         
         <b>Users</b>
-        <a id='link' href='#' onclick='clickfuncMessage(this.id)'>link</a>
         <ul id='all_users' class=team-list>
             <li><a href='#' onclick='clickfuncMessage(this)'>lche982</a>online</li>
         </ul>
 
     </div>
-    <div id="msgheader" class='header box'>Messagjjes</div>
+    <div id="msgheader" class='header box'>
+        {% if not username %}
+            Message
+        {% else %}
+            {{ username }}
+        {% endif %}
+    </div>
     <div class='messages box webkit-scrollbar webkit-scrollbar-thumb'>
         <ul id="pm" class='message-list'>
-            <li><div class='green_box'><span>Message from Lucy</span></div></li>
-            <li><div class='blue_box'><span>Message from Me</span></div></li>
-            <li><div class='blue_box'><span>Message from Me</span></div></li>
-            <li><div class='blue_box'><span>Message from Me</span></div></li>
-            <li><div class='green_box'><span>Message from Lucy</span></div></li>
-            <li><div class='blue_box'><span>Message from Me</span></div></li>
-            <li><div class='green_box'><span>Message from Lucy</span></div></li>
-            <li><div class='blue_box'><span>Message from Me</span></div></li>
-            <li><div class='blue_box'><span>Message from Me</span></div></li>
-
+            {% if messages|length == 0 and not username %}
+                Click on a user and start chatting!
+            {% elif messages|length == 0 and username %}
+                Start a conversation with {{ username }}
+            {% endif %}
+            {% for messageObj in messages %}
+                {% if messageObj["sent"] == "sent" %}
+                    <li><div class='blue_box'><span>{{ messageObj["message"] }}</span></div></li>
+                {% else %}
+                    <li><div class='green_box'><span>{{ messageObj["message"] }}</span></div></li>
+                {% endif %}
+            {% endfor %}
         </ul>
     </div>
 

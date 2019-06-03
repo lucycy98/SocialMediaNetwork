@@ -2,5 +2,9 @@ import database
 import time
 import database
 
-result = database.getConversation("lche982", "admin")
-print(result)
+conversations = database.getConversation("lche982", "admin")
+print(conversations)
+
+for conversation in conversations:
+    if conversations.get("sent") == 'sent':
+        

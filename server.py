@@ -46,14 +46,29 @@ class MainApp(object):
         return output
     
     @cherrypy.expose
-    def profile(self):
-
+    def profile(self, name=None):
         logserv = cherrypy.session.get("logserv", None)
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
         else:
             template = j2_env.get_template('web/profile.html')
-            output = template.render()
+            username = cherrypy.session.get("username")
+            if name == username or name is None:
+                broadcasts = database.getAllBroadcastsUser(username)
+                profile = database.getUserData(username)
+                isOwn = True
+            else:
+                broadcasts = database.getAllBroadcastsUser(name)
+                profile = database.getUserData(name)
+                isOwn = False
+            print(profile)   
+            print(broadcasts) 
+            if broadcasts is None:
+                broadcasts = [] 
+            if profile is None:
+                profile = database.getUserData(username)      
+                isOwn = True        
+            output = template.render(profile=profile, broadcasts=broadcasts, isOwn=isOwn)
         return output
     
     @cherrypy.expose
@@ -69,15 +84,24 @@ class MainApp(object):
         return output
 
     @cherrypy.expose
-    def message(self):
+    def message(self, name=None):
 
         logserv = cherrypy.session.get("logserv", None)
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
         else:
             template = j2_env.get_template('web/message.html')
-            output = template.render()
+            if name is not None:
+                messages = database.getConversation("lche982", name)
+                if messages is None:
+                    messages = []
+                output = template.render(username=name,messages=messages)
+            else: 
+                output = template.render(username=None, messages=[])
         return output
+        
+
+            
         
     @cherrypy.expose
     def login(self, bad_attempt=None):
@@ -174,21 +198,16 @@ class MainApp(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def getBroadcasts(self, username=None):
-        print("METHODS")
         all_broadcasts = database.getAllBroadcasts()
         data = []
-        print(all_broadcasts)
         for broadcast in all_broadcasts:
             tup = {}
             message = broadcast.get("message")
+            username = broadcast.get("username", "user")
             loginserver = broadcast.get("loginserver_record")
-            print(message)
-            print(loginserver)
-            print(type(loginserver))
             tup["message"] = message
-            tup["username"] = "username"
+            tup["username"] = username
             data.append(tup)
-        print(data)
         JSON = {"data": data}
 
         return JSON
@@ -198,6 +217,8 @@ class MainApp(object):
     def getMessages(self, username=None):
         print("GETTIGN !!!!! MESAGES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         all_conversations = database.getConversation("lche982", username) #TODO chaange lche982
+        if all_conversations is None:
+            all_conversations = []
         data = {"data":all_conversations}
         return data
 
@@ -217,12 +238,11 @@ class MainApp(object):
         print(message)
         print(target_user)
         p2p = cherrypy.session.get("p2p", None)
-
         if p2p is None:
             pass
         else:
             p2p.sendPrivateMessage(message, target_user)
-        raise cherrypy.HTTPRedirect('/index') 
+        raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=target_user)) 
     
     @cherrypy.expose
     def reportUser(self, status=None):

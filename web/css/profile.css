@@ -27,6 +27,24 @@ input[type=text] {
     margin-right: -10em;
   }
 
+  .profile-table{
+    text-align: left;
+    margin-left: 0;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  .cell-txt{
+    word-break: break-all;
+    width: 15em;
+  }
+
+  .head{
+    width: 7em;
+    padding: 1em;
+    font-weight: bold;
+  }
+
   #container{
     text-align: center;
     width: 85%;

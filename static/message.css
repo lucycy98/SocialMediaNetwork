@@ -67,7 +67,7 @@ input {
     padding: 0.6em;
   }
 
-  .team-list li:hover a:link{
+  .team-list li:hover{
     background-color: #b1b1b1;
     border-radius: 10em;
   }

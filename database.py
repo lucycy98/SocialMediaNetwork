@@ -11,7 +11,7 @@ def initialiseTable(c, conn):
     c.execute("CREATE TABLE users (username STRING PRIMARY KEY, address STRING, location STRING, pubkey STRING, lastReport STRING, status STRING)")
     c.execute("CREATE TABLE userhashes (username STRING NOT NULL, hash STRING, loginrecord STRING)")  
     
-    c.execute("CREATE TABLE broadcasts (loginserver_record STRING NOT NULL, message STRING, sender_created_at INT(11), signature STRING)") 
+    c.execute("CREATE TABLE broadcasts (loginserver_record STRING NOT NULL, message STRING, sender_created_at INT(11), signature STRING, username STRING)") 
     c.execute("CREATE TABLE receivedMessages (target_username STRING NOT NULL, target_pubkey STRING NOT NULL, encrypted_message STRING, sender_created_at INT(11), signature STRING, sender_username STRING, sent STRING)") 
     c.execute("CREATE TABLE sentMessages (username STRING NOT NULL, target_username STRING, message STRING, sender_created_at INT(11), sent STRING)") 
 
@@ -95,6 +95,19 @@ def getAllBroadcasts(since=None):
     closeDatabase(conn)
     return data
 
+#get all broadcasts since....
+def getAllBroadcastsUser(username):
+    printDatabase()
+    conn, c = loadDatabase()
+    c.execute("SELECT * FROM broadcasts WHERE username='{a}'".format(a=username))
+    result = c.fetchall()
+    if len(result) == 0:
+        closeDatabase(conn)
+        return None
+    data = resultToJSON(result, c)
+    closeDatabase(conn)
+    return data
+
 #get all messages since....
 def getAllMessages(since=None):
     conn, c = loadDatabase()
@@ -136,16 +149,11 @@ def addsentMessages(username ,target_username, message, timestamp):
     c.execute("INSERT INTO sentMessages VALUES('{username}','{target_username}','{message}','{timestamp}', 'sent')".format(username=username, target_username=target_username, message=message, timestamp=timestamp))
     closeDatabase(conn)
 
-def addBroadCast(username, message, timestamp, signature):
+def addBroadCast(loginrecord, message, timestamp, signature, username):
     conn, c = loadDatabase()
-    c.execute("INSERT INTO broadcasts VALUES('{username}','{message}','{timestamp}', '{signature}')".format(username=username, message=message, timestamp=timestamp, signature=signature))
+    c.execute("INSERT INTO broadcasts VALUES('{loginrecord}','{message}','{timestamp}', '{signature}', '{username}')".format(loginrecord = loginrecord, username=username, message=message, timestamp=timestamp, signature=signature))
     closeDatabase(conn)
-
-
-
-
-
-
+    printDatabase()
 
 def updateUsersInfo(username, address=None, location=None, pubkey=None, lastReport=None, status=None):
     conn, c = loadDatabase()
@@ -178,8 +186,6 @@ def addLoginServerRecord( username, record):
         c.execute("UPDATE userhashes SET loginrecord='{record}' WHERE username='{username}'".format(record=record, username=username))
         print("adding login server record")
     closeDatabase(conn)
-    print("PRINTING DATABASES!!!!!!!!!!!!!!!!")
-    printDatabase()
 
 
 def getUserInfo( username, want):
@@ -200,7 +206,7 @@ def getUserInfo( username, want):
 
 def printDatabase():
     conn, c = loadDatabase()
-    c.execute("SELECT * FROM receivedMessages")
+    c.execute("SELECT * FROM broadcasts")
     result = c.fetchall()
     print("print database:")
     print(result)
@@ -225,7 +231,7 @@ def getUserData(username):
 def getAllUsers():
     conn, c = loadDatabase()
 
-    c.execute("SELECT * FROM users")
+    c.execute("SELECT * FROM users ORDER BY status DESC, username ASC")
     result = c.fetchall()
     if len(result) == 0:
         closeDatabase(conn)

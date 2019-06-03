@@ -1,3 +1,5 @@
+var last_clicked_username = null;
+
 function loadOnline() {
 	var xhttp = new XMLHttpRequest();
 	xhttp.onreadystatechange = function() {
@@ -10,7 +12,7 @@ function loadOnline() {
 			if (obj.hasOwnProperty(key)) {
 				username = key
 				status = obj[username]
-				Page += "<li><a id='" + username + "' href='#' onclick='clickfuncMessage(this.id)'>"+username+"</a> " + status + "</li>";
+				Page += "<li><a id='" + username + "' href='#' onclick='clickfuncMessage(this.id)'>"+status +  " " + username +"</a></li>";
 			}
 		}
 		document.getElementById("all_users").innerHTML = Page;
@@ -28,10 +30,21 @@ function report() {
 	xhttp.send(null); 
 }
 
+function getParam(){
+	var url = new URL(window.location.href);
+	var c = url.searchParams.get("name");
+	document.getElementById('targetuser').value = c;
+}
+
 function clickfuncMessage(object) {
-	document.getElementById("msgheader").innerHTML = object;
-	document.getElementById('targetuser').value = object;
-	retrievePrivateMessages(object)
+	last_clicked_username = object;
+	document.getElementById("msgheader").innerHTML = "<a href='/profile?name=" + last_clicked_username+ "'>" + last_clicked_username + "</a>"
+	document.getElementById('targetuser').value = last_clicked_username;
+	retrievePrivateMessages(last_clicked_username)
+}
+
+function refreshMessages() {
+	retrievePrivateMessages(last_clicked_username);
 }
 
 function retrievePrivateMessages(username) {
@@ -41,12 +54,12 @@ function retrievePrivateMessages(username) {
 	if (this.readyState == 4 && this.status == 200) {
 		var obj = JSON.parse(this.response)
 		var messages = obj["data"];
-
-		if (messages.length == 0){
-			return;
-		}
-
 		Page = ""
+		if (messages.length == 0){
+			Page += "Start a conversation with "
+			Page += username
+			document.getElementById("pm").innerHTML = Page;
+		}
 
 		for (i=0; i < messages.length; i++){
 			messageObj = messages[i];
@@ -69,6 +82,7 @@ function retrievePrivateMessages(username) {
 
 loadOnline()
 report()
+getParam()
 
 var myVar2 = setInterval(loadOnline, 11600);
 var myvar = setInterval(report, 11000);

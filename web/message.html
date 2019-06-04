@@ -11,6 +11,29 @@
     <div class='teams box webkit-scrollbar webkit-scrollbar-thumb'>
 
         <b>Group Chats</b>
+        <!-- Trigger/Open The Modal -->
+        <button id="myBtn" class="buttons">+</button>
+
+        <!-- The Modal -->
+        <div id="myModal" class="modal">
+
+        <!-- Modal content -->
+        <div class="modal-content">
+                <span class="close">&times;</span>
+        <div class='cont'>
+            
+            <form>
+                <h3>Add participants to your group:<input type="submit" value="Create" style='float: right;'></h3>
+                <br>
+
+                <table class=names-list id='group-table'>
+                   
+                </table>
+            </form>
+        </div>
+        </div>
+
+        </div>
         <ul class=team-list>
             <li>compsys 302</li>
             <li>compsci 213</li>
@@ -59,7 +82,8 @@
         </form>
     </div>
 </div>
-
+<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
+<script src="js/groupchat.js"></script>
 <script src="js/click.js"></script>
 <script src="js/list_users.js">
 </script>

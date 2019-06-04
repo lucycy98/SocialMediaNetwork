@@ -34,7 +34,6 @@ def checkUsernamePassword(username, password):
     c.execute("SELECT * FROM userhashes WHERE username='{username}'".format(username = username))
     result = c.fetchall()
     if len(result) > 0: #then doesn't exist
-        print(result) #check if password matches #TODO update this to reflect result
         try:
             storedPassword = result[0][1]
         except:

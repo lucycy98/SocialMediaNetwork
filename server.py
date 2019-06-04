@@ -61,8 +61,7 @@ class MainApp(object):
                 broadcasts = database.getAllBroadcastsUser(name)
                 profile = database.getUserData(name)
                 isOwn = False
-            print(profile)   
-            print(broadcasts) 
+          
             if broadcasts is None:
                 broadcasts = [] 
             if profile is None:
@@ -92,7 +91,8 @@ class MainApp(object):
         else:
             template = j2_env.get_template('web/message.html')
             if name is not None:
-                messages = database.getUserConversation("lche982", name)
+                username = cherrypy.session.get("username")
+                messages = database.getUserConversation(username, name)
                 if messages is None:
                     messages = []
                 output = template.render(username=name,messages=messages)
@@ -165,8 +165,6 @@ class MainApp(object):
             if username is None or status is None:
                 continue
             data[username]=status
-        print("return adata is ")
-        print(data)
         return data
 
     @cherrypy.expose
@@ -197,8 +195,7 @@ class MainApp(object):
         for broadcast in all_broadcasts:
             tup = {}
             message = broadcast.get("message")
-            print("MESSAGE!!!")
-            print(message)
+            
             username = broadcast.get("username")
             loginserver = broadcast.get("loginserver_record")
             tup["message"] = message
@@ -211,8 +208,8 @@ class MainApp(object):
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def getMessages(self, username=None):
-        print("GETTIGN !!!!! MESAGES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        all_conversations = database.getUserConversation("lche982", username) #TODO chaange lche982
+        my_username = cherrypy.session.get("username")
+        all_conversations = database.getUserConversation(my_username, username)
         if all_conversations is None:
             all_conversations = []
         data = {"data":all_conversations}
@@ -230,20 +227,32 @@ class MainApp(object):
     
     @cherrypy.expose
     def sendPrivateMessage(self, message, target_user):
-        print("sending private message")
-        print(message)
-        print(target_user)
         p2p = cherrypy.session.get("p2p", None)
         if p2p is None:
             pass
         else:
             p2p.sendPrivateMessage(message, target_user)
         raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=target_user)) 
+
+
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    def createGroupChat(self):
+        p2p = cherrypy.session.get("p2p", None)
+        if p2p is None:
+            pass
+        else:
+            payload = cherrypy.request.json
+            print("RECIEVED GROUP CHAT PAYLOAD!!")
+            print(payload)
+
+            #p2p.sendPrivateMessage(message, target_user)
+            
+        #raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=target_user)) 
     
     @cherrypy.expose
     def reportUser(self, status=None):
-        print("reporting user!!!!!!!!!!!")
-        print(status)
+    
         if not status:
             status = "online"
         logserv = cherrypy.session.get("logserv", None)
@@ -262,21 +271,3 @@ class MainApp(object):
             logserv.reportUser("offline")
             cherrypy.lib.sessions.expire()
         raise cherrypy.HTTPRedirect('/')
-    
-    @cherrypy.expose
-    def createGroupChat(self, usernames=None):
-        print("sending private message")
-        print(message)
-        print(target_user)
-        p2p = cherrypy.session.get("p2p", None)
-        if p2p is None:
-            pass
-        else:
-            p2p.createGroupChat(usernames)
-        #raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=target_user)) 
-
-
-
-
-
-#TODO : create api key (user name , password)

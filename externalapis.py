@@ -122,3 +122,66 @@ class MainApp(object):
                 database.addReceivedMessage(target_username, target_pubkey, encr_message, sender_created_at, encr_message, username)
         response = helper.generateResponseJSON(error)
         return response
+    
+    #recieving groupinvites
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def rx_groupinvite(self):
+        error = "ok"
+        print("recieving group invite!")
+        payload = cherrypy.request.json
+
+        loginserver_record = payload.get("loginserver_record", None)
+        target_pubkey = payload.get("target_pubkey", None)
+        groupkey_hash = payload.get("groupkey_hash", None)
+        encr_groupkey = payload.get("encrypted_groupkey", None)
+        sender_created_at = payload.get("sender_created_at", None)
+        signature = payload.get("signature", None)
+        target_username = payload.get("target_username", None)
+
+        if not loginserver_record or not target_pubkey or not groupkey_hash or not encr_groupkey or not signature or not sender_created_at:
+            error = "missing parameters in request"
+        else:
+            username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
+            message = str(loginserver_record)+str(groupkey_hash)+str(target_pubkey)+str(target_username)+str(encr_groupkey)+str(sender_created_at)
+            try: 
+                helper.verifyMessageSignature(message, pubkey, signature)
+            except nacl.exceptions.BadSignatureError as e:
+                error = "bad signature error."
+                print(e)
+            else:
+                database.addGroupChatReceived(groupkey_hash, target_username)
+                #TODO update keys. 
+        response = helper.generateResponseJSON(error)
+        return response
+
+    #recieving private messages
+    @cherrypy.expose
+    @cherrypy.tools.json_in()
+    @cherrypy.tools.json_out()
+    def rx_groupmessage(self):
+        error = "ok"
+        print("recieving group message!")
+        payload = cherrypy.request.json
+
+        loginserver_record = payload.get("loginserver_record", None)
+        groupkey_hash = payload.get("groupkey_hash", None)
+        group_message = payload.get("group_message", None)
+        sender_created_at = payload.get("sender_created_at", None)
+        signature = payload.get("signature", None)
+
+        if not loginserver_record  or not groupkey_hash or not group_message or not signature or not sender_created_at:
+            error = "missing parameters in request"
+        else:
+            username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
+            message = str(loginserver_record)+str(group_message)+str(sender_created_at)
+            try: 
+                helper.verifyMessageSignature(message, pubkey, signature)
+            except nacl.exceptions.BadSignatureError as e:
+                error = "bad signature error."
+                print(e)
+            else:
+                database.addGroupMessage(groupkey_hash, username, group_message, sender_created_at)
+        response = helper.generateResponseJSON(error)
+        return response

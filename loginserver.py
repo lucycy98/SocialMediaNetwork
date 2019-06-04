@@ -46,23 +46,25 @@ class loginserver():
         ip = urllib.request.urlopen('http://ipv4.icanhazip.com').read()
         publicip = ip.rstrip().decode('utf-8')
 
-        localip = socket.gethostbyname(socket.gethostname())
-        print(localip)
-        print(publicip)
+        #localip = socket.gethostbyname(socket.gethostname())
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        localip = s.getsockname()[0]
 
-        if localip.find('10.103',0 ,6) != -1:
+        if '130.216' in publicip:
             self.connection_address = localip
-            self.location = '0'
-        elif localip.find('172.23',0 ,6) != -1:
+            self.connection_location = '0'
+        elif '172.23' in localip or '172.24' in localip:
             self.connection_address = localip
-            self.location = '1'
+            self.connection_location = '1'
+            
         else:
-           self.connection_address = publicip
-           self.location = '2'
-        
+            self.connection_address = publicip
+            self.connection_location = '2'
+    
         print("MY IP IS")
-        self.connection_address = "172.24.18.94:9210"
-        self.connection_location = '1'
+        print(self.connection_address)
+        print(self.connection_location)
     
     '''
     function to report the User. status can be offline, online, away, busy.
@@ -91,7 +93,6 @@ class loginserver():
         else:
             print ("error in reporting")
             return 1
-    
 
     '''
     goes through the private data on the account, and checks if a signing key has already
@@ -104,15 +105,22 @@ class loginserver():
         private_data = self.getPrivateData()
         print("private data is")
         print(private_data)            
-        hex_key = private_data.get("prikeys", None)
-        if hex_key is None:
+        prikeys = private_data.get("prikeys", None)
+        
+        if prikeys is None:
             print("HEX KEY IS NONE")
             self.addPublicKey()
             error = self.testPublicKey()
-            if error == 0:
-                private_data["prikeys"] = self.hex_key.decode('utf-8')
-                self.addPrivateData(private_data)
+            if error != 0:
+               return error
+             #creating private data. 
+            private_data["prikeys"] = []
+            private_data["prikeys"].append(self.hex_key.decode('utf-8'))
+            print("private data is")
+            print(private_data)
+            self.addPrivateData(private_data)
         else:
+            hex_key = prikeys[0]
             self.signing_key = nacl.signing.SigningKey(hex_key, encoder=nacl.encoding.HexEncoder)
             self.hex_key = hex_key
             error = self.testPublicKey()
@@ -164,7 +172,7 @@ class loginserver():
                 continue
             if username not in online_users:
                 database.makeUserOffline(username)    
-        database.printDatabase()
+        #database.printDatabase()
 
 
     '''
@@ -293,12 +301,14 @@ class loginserver():
 
         private_data = {}
         if response == "ok":
-            private_data_encr = JSON_object.get("privatedata")
-            private_data_bytes = bytes.fromhex(private_data_encr)
+            private_data_encr = JSON_object.get("privatedata", None)
+            if not private_data_encr:
+                return {}
+            private_data_bytes = base64.b64decode(private_data_encr)
             key = helper.getSymmetricKeyFromPassword(self.password2)
             try:
                 private_data_str = helper.decryptStringKey(key, private_data_bytes)
-            except Exception as e: #TODO change to specific exception
+            except nacl.exceptions.CryptoError as e: #TODO change to specific exception
                 print(e)
                 return {}
             else: 
@@ -320,7 +330,7 @@ class loginserver():
         private_data_str = json.dumps(private_data)
         key = helper.getSymmetricKeyFromPassword(self.password2)
         private_data_encr = helper.encryptStringKey(key, private_data_str) #encrypted private data
-        private_data_hex_str = private_data_encr.hex() #hexed private data
+        private_data_hex_str = base64.b64encode(private_data_encr).decode('utf-8') #hexed private data
 
         #creating message and then signed
         message_bytes = bytes(private_data_hex_str + self.login_server_record + ts, encoding='utf-8')

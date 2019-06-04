@@ -49,3 +49,5 @@ store prikeys as josn [{"hex_hey", "123456789iuytgfdghj"}, {"shagrouphash", "123
 encrypt sent messages too.
 
 who do we send the group apis to? everyone? i think so. so even if they didnt recieve it, it would work.
+
+check character limit

@@ -9,7 +9,7 @@ import base64
 from nacl import pwhash, secret, utils
 import nacl.hash
 
-salt = b'\xa3\x95\\\xec\x1cFpr8\xb7\x92\x7f\x18%)\x88'
+#salt = b'\xa3\x95\\\xec\x1cFpr8\xb7\x92\x7f\x18%)\x88'
 
 '''
 sends a POST/GET request to the URL endpoint specified.
@@ -22,7 +22,7 @@ def postJson(payload, headers, url):
     try:
         req = urllib.request.Request(url, data=payload, headers=headers)
 
-        response = urllib.request.urlopen(req, timeout=10)
+        response = urllib.request.urlopen(req, timeout=2)
         data = response.read() # read the received bytes
         encoding = response.info().get_content_charset('utf-8') #load encoding if possible (default to utf-8)
         response.close()
@@ -72,7 +72,7 @@ def getShaHash(message):
     hash = nacl.hash.sha256(message, encoder=nacl.encoding.HexEncoder)
     return hash
 
-def AddToPrivateData(logserv, key, value):
+def addToPrivateData(logserv, key, value):
     private_data = logserv.getPrivateData()
     values = private_data.get(key, None)
     if not values:
@@ -96,10 +96,12 @@ def encryptMessage(message, publickey_hex):
 
 def getSymmetricKeyFromPassword(password):
     password = bytes(password, encoding='utf-8')
+    long_salt = nacl.pwhash.argon2i.SALTBYTES * password
+    salt = long_salt[0:nacl.pwhash.argon2i.SALTBYTES]
     kdf = pwhash.argon2i.kdf
     ops = pwhash.argon2i.OPSLIMIT_SENSITIVE
     mem = pwhash.argon2i.MEMLIMIT_SENSITIVE
-    key = kdf(secret.SecretBox.KEY_SIZE, password, salt, opslimit=ops, memlimit=mem)
+    key = kdf(secret.SecretBox.KEY_SIZE, password, salt=salt, opslimit=ops, memlimit=mem)
     return key
 
 def generateRandomSymmetricKey():

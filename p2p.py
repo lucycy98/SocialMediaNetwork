@@ -14,7 +14,8 @@ import database
 import helper
 
 class p2p():
-    def __init__(self, username, password, signing_key, api):
+    def __init__(self, username, password, signing_key, api, logserv):
+        self.logserv = logserv
         self.username = username
         self.password = password
         self.signing_key = signing_key
@@ -42,13 +43,14 @@ class p2p():
             "signature": signature_hex_str
         }
 
-        database.addBroadCast(loginserver_record, message, ts, signature_hex_str, self.username)
+        username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
+
+        database.addBroadCast(loginserver_record, message, ts, signature_hex_str, username)
     
         print("GETTING PERSON")
         all_users = database.getAllUsers()
         print(all_users)
 
-        '''
         for user in all_users:
             user_address = user.get("address", None)
             if user_address is None:
@@ -69,7 +71,6 @@ class p2p():
                     print("response not OK")
             except:
                 print("FAILED TO BROADCAST!")
-                '''
     
     def sendPrivateMessage(self, message, send_user):
         headers = self.createAuthorisedHeader(True)
@@ -86,7 +87,6 @@ class p2p():
         signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
         signature_hex_str = signed.signature.decode('utf-8')
         
-
         payload = {
             "loginserver_record": loginserver_record,
             "target_pubkey": user_pubkey,
@@ -105,7 +105,7 @@ class p2p():
         print(payload)
         print(url)
     
-        database.addsentMessages(self.username, send_user, message, ts) #maybe change to encrypted? nah
+        database.addsentMessages(self.username, send_user, message, ts, "user") #maybe change to encrypted? nah
 
         try:
             JSON_object = helper.postJson(payload, headers, url)
@@ -121,13 +121,105 @@ class p2p():
     
     def createGroupChat(self, target_usernames):
         print("creating group chats")
-        
+        #generating symmetric keys to be stored
+        key = helper.generateRandomSymmetricKey()
+        helper.AddToPrivateData(self.logserv, "prikeys", key) #not sure if you can add bytes here....TODO
 
+        #check to see if group exists already
+        #TODO
 
+        #create a group invite
+        loginserver_record = database.getUserInfo(self.username, "loginrecord")
+        groupkey_hash = helper.getShaHash(key)
+        groupkey_hash_str = groupkey_hash.decode('utf-8')
 
+        for user in target_usernames:
+            username = user
+            user = database.getUserData(username)
+            user_address = user.get("address", None)
+            user_location = user.get("location", None)
+            user_pubkey = user.get("pubkey", None)
+
+            encr_groupkey = helper.encryptMessage(key, user_pubkey)
+            ts = str(time.time())
+
+            print(loginserver_record)
+            print(groupkey_hash_str)
+            print(user_pubkey)
+            print(encr_groupkey)
+            message_bytes = bytes(loginserver_record+groupkey_hash_str+user_pubkey+username+encr_groupkey+ts, encoding='utf-8')
             
+            signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
+            signature_hex_str = signed.signature.decode('utf-8')
 
+            payload = {
+                "loginserver_record": loginserver_record,
+                "groupkey_hash": groupkey_hash_str,
+                "target_pubkey": user_pubkey,
+                "target_username": username,
+                "encrypted_groupkey": encr_groupkey,
+                "sender_created_at": ts,
+                "signature": signature_hex_str
+            }
+
+            if user_address is None:
+                continue
+            url = "http://" + user_address + "/api/rx_groupinvite"
+            print(url)
+
+            try:
+                JSON_object = helper.postJson(payload, headers, url)
+                print(JSON_object)
+                response = JSON_object.get("response", None)
+                if response == "ok":
+                    print("group invite sent successfully")
+                else:
+                    print("response not OK")
+            except:
+                print("FAILED TO SEND!")
     
+    def SendGroupMessage(self, target_group_hash, message):
+        headers = self.createAuthorisedHeader(True)
+        print(headers)
+        print(message)
+        key + "6767567jbkjghjbgjhnb"
+        
+        encr_message = helper.encryptStringKey(key, message)
+        loginserver_record = database.getUserInfo(self.username, "loginrecord")        
+        ts = str(time.time())
+        message_bytes = bytes(loginserver_record+encr_message+ts, encoding='utf-8')
+        signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
+        signature_hex_str = signed.signature.decode('utf-8')
+
+        payload = {
+            "loginserver_record": loginserver_record,
+            "groupkey_hash": target_group_hash,
+            "group_message": encr_message,
+            "sender_created_at": ts,
+            "signature": signature_hex_str
+        }
+        database.addsentMessages(self.username, target_group_hash, message, timestamp, "group")
+
+        
+        for user in all_users:
+            user_address = user.get("address", None)
+            if user_address is None:
+                continue
+            url = "http://" + user_address + "/api/rx_groupmessage"
+            print(url)
+
+            try:
+                JSON_object = helper.postJson(payload, headers, url)
+                print(JSON_object)
+                response = JSON_object.get("response", None)
+                if response == "ok":
+                    print("broadcast successfully sent")
+                    print("url")
+                else:
+                    print("response not OK")
+            except:
+                print("FAILED TO sent group message!")
+                
     def retrieveBroadcasts(self):
         print("METHODS")
         all_broadcasts = database.getAllBroadcasts()

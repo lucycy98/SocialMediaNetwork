@@ -37,6 +37,7 @@ class MainApp(object):
     def rx_broadcast(self):
         error = "ok"
         print("recieving broadcast message!")
+        print(cherrypy.request)
         payload = cherrypy.request.json
 
         loginserver_record = payload.get("loginserver_record", None)
@@ -48,9 +49,9 @@ class MainApp(object):
             error = "missing parameters in request"
         else:   
             username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
-            message = str(loginserver_record)+str(message)+str(sender_created_at)
+            message_signature = str(loginserver_record)+str(message)+str(sender_created_at)
             try: 
-                helper.verifyMessageSignature(message, pubkey, signature)
+                helper.verifyMessageSignature(message_signature, pubkey, signature)
             except nacl.exceptions.BadSignatureError as e:
                 error = "bad signature error."
                 print(e)
@@ -94,7 +95,7 @@ class MainApp(object):
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
-    def HI(self):
+    def rx_privatemessage(self):
         error = "ok"
         print("recieving prvate message!")
         payload = cherrypy.request.json
@@ -105,6 +106,7 @@ class MainApp(object):
         sender_created_at = payload.get("sender_created_at", None)
         signature = payload.get("signature", None)
         target_username = payload.get("target_username", None)
+        username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
 
         if not loginserver_record or not encr_message or not signature or not target_pubkey or not target_pubkey or not sender_created_at:
             error = "missing parameters in request"
@@ -117,6 +119,6 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
-                database.addBroadCast(loginserver_record, message, sender_created_at, signature, username)
+                database.addReceivedMessage(target_username, target_pubkey, encr_message, sender_created_at, encr_message, username)
         response = helper.generateResponseJSON(error)
         return response

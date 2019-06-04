@@ -43,3 +43,9 @@ if we find that the signature is forged, do we still want to save it or discard 
 
 find out how to return response codes
 better error handling
+
+store prikeys as josn [{"hex_hey", "123456789iuytgfdghj"}, {"shagrouphash", "123456789iuytgfdghj"} ]
+
+encrypt sent messages too.
+
+who do we send the group apis to? everyone? i think so. so even if they didnt recieve it, it would work.

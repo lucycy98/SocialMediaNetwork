@@ -4,36 +4,73 @@ import nacl.encoding
 import nacl.signing
 import base64
 from nacl import pwhash, secret, utils
-
-password = b"password"
-message = b"This is a message for Bob's eyes only"
-
-kdf = pwhash.argon2i.kdf
-salt = utils.random(pwhash.argon2i.SALTBYTES)
-ops = pwhash.argon2i.OPSLIMIT_SENSITIVE
-mem = pwhash.argon2i.MEMLIMIT_SENSITIVE
-
-Alices_key = kdf(secret.SecretBox.KEY_SIZE, password, salt,
-                 opslimit=ops, memlimit=mem)
-Alices_box = secret.SecretBox(Alices_key)
-nonce = utils.random(secret.SecretBox.NONCE_SIZE)
-print(salt)
-
-encrypted = Alices_box.encrypt(message, nonce)
-
-# now Alice must send to Bob both the encrypted message
-# and the KDF parameters: salt, opslimit and memlimit;
-# using the same kdf mechanism, parameters **and password**
-# Bob is able to derive the correct key to decrypt the message
+import nacl.hash
+import helper
 
 
 
-Bobs_key = kdf(secret.SecretBox.KEY_SIZE, password, salt,
-               opslimit=ops, memlimit=mem)
 
-Bobs_box = secret.SecretBox(Bobs_key)
-received = Bobs_box.decrypt(encrypted)
-print(received.decode('utf-8'))
+if destination == cherrypy.session['userdata'].username:
+        peer['ip'] = 'localhost'
+elif peer['location'] == '2':
+        pass
+elif peer['location'] == cherrypy.session['userdata'].location:
+        pass
+else:
+        raise cherrypy.HTTPRedirect("home")
+try:
+        payload = json.dumps(data)
+        req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
+        peer['port']) + '/handshake', payload, {'Content-Type': 'application/json'})
+        response = urllib2.urlopen(req, timeout=2).read()
+        response = json.loads(response)
+        if response['message'] == text:
+                return ("nope.")
+except:
+        return ('7: Hash does not match')
+
+def idk():
+        username = "lche982"
+        print("creating group chats")
+        #generating symmetric keys to be stored
+        key = helper.generateRandomSymmetricKey()
+        print(key)
+        new = key.hex()
+        print(new)
+        message_bytes_hex = bytes.fromhex(new)
+        print(message_bytes_hex)
+
+
+def pwashtest():
+        password = b"password"
+        message = b"This is a message for Bob's eyes only"
+
+        kdf = pwhash.argon2i.kdf
+        salt = b'\xa3\x95\\\xec\x1cFpr8\xb7\x92\x7f\x18%)\x88'
+        ops = pwhash.argon2i.OPSLIMIT_SENSITIVE
+        mem = pwhash.argon2i.MEMLIMIT_SENSITIVE
+
+        Alices_key = kdf(secret.SecretBox.KEY_SIZE, password, salt,
+                        opslimit=ops, memlimit=mem)
+        Alices_box = secret.SecretBox(Alices_key)
+        nonce = utils.random(secret.SecretBox.NONCE_SIZE)
+        print(salt)
+
+        encrypted = Alices_box.encrypt(message, nonce)
+
+        # now Alice must send to Bob both the encrypted message
+        # and the KDF parameters: salt, opslimit and memlimit;
+        # using the same kdf mechanism, parameters **and password**
+        # Bob is able to derive the correct key to decrypt the message
+
+
+
+        Bobs_key = kdf(secret.SecretBox.KEY_SIZE, password, salt,
+                opslimit=ops, memlimit=mem)
+
+        Bobs_box = secret.SecretBox(Bobs_key)
+        received = Bobs_box.decrypt(encrypted)
+        print(received.decode('utf-8'))
 
 def testprivatekeys():
     broadcasts = database.getAllBroadcasts()

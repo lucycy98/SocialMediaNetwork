@@ -92,7 +92,7 @@ class MainApp(object):
         else:
             template = j2_env.get_template('web/message.html')
             if name is not None:
-                messages = database.getConversation("lche982", name)
+                messages = database.getUserConversation("lche982", name)
                 if messages is None:
                     messages = []
                 output = template.render(username=name,messages=messages)
@@ -129,7 +129,7 @@ class MainApp(object):
             print("testing error") #todo: deal with errors
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
         logserv.reportUser("online")
-        peer = p2p.p2p(username, password, logserv.signing_key, logserv.apikey)
+        peer = p2p.p2p(username, password, logserv.signing_key, logserv.apikey, logserv)
         cherrypy.session['username'] = username
         cherrypy.session['password'] = password
         cherrypy.session["logserv"] = logserv
@@ -197,7 +197,9 @@ class MainApp(object):
         for broadcast in all_broadcasts:
             tup = {}
             message = broadcast.get("message")
-            username = broadcast.get("username", "user")
+            print("MESSAGE!!!")
+            print(message)
+            username = broadcast.get("username")
             loginserver = broadcast.get("loginserver_record")
             tup["message"] = message
             tup["username"] = username
@@ -210,7 +212,7 @@ class MainApp(object):
     @cherrypy.tools.json_out()
     def getMessages(self, username=None):
         print("GETTIGN !!!!! MESAGES !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-        all_conversations = database.getConversation("lche982", username) #TODO chaange lche982
+        all_conversations = database.getUserConversation("lche982", username) #TODO chaange lche982
         if all_conversations is None:
             all_conversations = []
         data = {"data":all_conversations}

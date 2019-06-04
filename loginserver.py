@@ -12,6 +12,7 @@ import os.path
 import database
 import os
 import helper
+import socket
 
 class loginserver():
     def __init__(self, username, password, password2):
@@ -43,12 +44,25 @@ class loginserver():
             
     def getConnectionAddress(self):
         ip = urllib.request.urlopen('http://ipv4.icanhazip.com').read()
-        self.connection_address = ip.rstrip().decode('utf-8')
+        publicip = ip.rstrip().decode('utf-8')
 
-        if '10.103' in self.connection_address:
+        localip = socket.gethostbyname(socket.gethostname())
+        print(localip)
+        print(publicip)
+
+        if localip.find('10.103',0 ,6) != -1:
+            self.connection_address = localip
             self.location = '0'
+        elif localip.find('172.23',0 ,6) != -1:
+            self.connection_address = localip
+            self.location = '1'
         else:
-            self.location = '2'
+           self.connection_address = publicip
+           self.location = '2'
+        
+        print("MY IP IS")
+        self.connection_address = "172.24.18.94:9210"
+        self.connection_location = '1'
     
     '''
     function to report the User. status can be offline, online, away, busy.
@@ -73,7 +87,6 @@ class loginserver():
 
         response = JSON_object.get("response", None)
         if response == "ok":
-            print("reported successfully.")
             return 0
         else:
             print ("error in reporting")
@@ -97,7 +110,8 @@ class loginserver():
             self.addPublicKey()
             error = self.testPublicKey()
             if error == 0:
-                self.addKeyPrivateData(private_data)
+                private_data["prikeys"] = self.hex_key.decode('utf-8')
+                self.addPrivateData(private_data)
         else:
             self.signing_key = nacl.signing.SigningKey(hex_key, encoder=nacl.encoding.HexEncoder)
             self.hex_key = hex_key
@@ -296,14 +310,13 @@ class loginserver():
     where private data input is the existing private data
     returns '0' if added successfully, otherwise error. 
     '''
-    def addKeyPrivateData(self, private_data):
+    def addPrivateData(self, private_data):
         url_add = "http://cs302.kiwi.land/api/add_privatedata"
             
         headers = self.createAuthorisedHeader(True)
     
         ts = str(time.time())
 
-        private_data["prikeys"] = self.hex_key.decode('utf-8')
         private_data_str = json.dumps(private_data)
         key = helper.getSymmetricKeyFromPassword(self.password2)
         private_data_encr = helper.encryptStringKey(key, private_data_str) #encrypted private data

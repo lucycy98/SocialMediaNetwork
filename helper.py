@@ -7,6 +7,7 @@ import nacl.encoding
 import nacl.signing
 import base64
 from nacl import pwhash, secret, utils
+import nacl.hash
 
 salt = b'\xa3\x95\\\xec\x1cFpr8\xb7\x92\x7f\x18%)\x88'
 
@@ -65,13 +66,30 @@ def getUserData(username):
     user_pubkey = user.get("pubkey", None)
     return user_pubkey, user_address, user_location
 
+def getShaHash(message):
+    if isinstance(message, str):
+        message = bytes(message, encoding='utf-8')
+    hash = nacl.hash.sha256(message, encoder=nacl.encoding.HexEncoder)
+    return hash
+
+def AddToPrivateData(logserv, key, value):
+    private_data = logserv.getPrivateData()
+    values = private_data.get(key, None)
+    if not values:
+        values = []
+    values.append(value)
+    private_data[key] = values
+    logserv.addPrivateData(private_data)
+
 def encryptMessage(message, publickey_hex):
     #publickey_hex contains the target publickey
     #using the nacl.encoding.HexEncoder format
     verifykey = nacl.signing.VerifyKey(publickey_hex, encoder=nacl.encoding.HexEncoder)
     publickey = verifykey.to_curve25519_public_key()
     sealed_box = nacl.public.SealedBox(publickey)
-    message_bytes = bytes(message, encoding='utf-8')
+    message_bytes = message
+    if isinstance(message, str):
+        message_bytes = bytes(message, encoding='utf-8')
     encrypted = sealed_box.encrypt(message_bytes, encoder=nacl.encoding.HexEncoder)
     message_encr = encrypted.decode('utf-8')
     return message_encr
@@ -82,6 +100,10 @@ def getSymmetricKeyFromPassword(password):
     ops = pwhash.argon2i.OPSLIMIT_SENSITIVE
     mem = pwhash.argon2i.MEMLIMIT_SENSITIVE
     key = kdf(secret.SecretBox.KEY_SIZE, password, salt, opslimit=ops, memlimit=mem)
+    return key
+
+def generateRandomSymmetricKey():
+    key = nacl.utils.random(nacl.secret.SecretBox.KEY_SIZE)
     return key
 
 '''

@@ -23,12 +23,17 @@
         <div class='cont'>
             
             <form>
-                <h3>Add participants to your group:<input type="submit" value="Create" style='float: right;'></h3>
+                <h3>Add participants to your group:<button class = 'buttons' type="button">Create</button></h3>
                 <br>
 
-                <table class=names-list id='group-table'>
-                   
-                </table>
+                <ul class=people-list id='group-list'>
+                    {% for username in onlineusers %}
+                        <li><label><input type='checkbox' value='{{username}}' name='username'><span></span>{{username}}</label></li>
+                    {% endfor %}
+
+                       
+                    </ul>
+                
             </form>
         </div>
         </div>
@@ -46,7 +51,10 @@
         
         <b>Users</b>
         <ul id='all_users' class=team-list>
-            <li><a href='#' onclick='clickfuncMessage(this)'>lche982</a>online</li>
+            {% for username in onlineusers %}
+                <a href='?name={{username}}'><li>{{ onlineusers[username] }} {{username}}</li></a>
+            {% endfor %}
+            
         </ul>
 
     </div>
@@ -54,7 +62,7 @@
         {% if not username %}
             Message
         {% else %}
-            {{ username }}
+            <a href='profile?name={{username}}'>{{ username }}</a>
         {% endif %}
     </div>
     <div class='messages box webkit-scrollbar webkit-scrollbar-thumb'>
@@ -67,8 +75,10 @@
             {% for messageObj in messages %}
                 {% if messageObj["sent"] == "sent" %}
                     <li><div class='blue_box'><span>{{ messageObj["message"] }}</span></div></li>
+                    <li><div class='time-right'><span>{{ messageObj["time"] }}</span></div></li>
                 {% else %}
                     <li><div class='green_box'><span>{{ messageObj["message"] }}</span></div></li>
+                    <li><div class='time-left'><span>{{ messageObj["time"] }}</span></div></li>
                 {% endif %}
             {% endfor %}
         </ul>

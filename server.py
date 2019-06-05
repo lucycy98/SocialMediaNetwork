@@ -13,6 +13,7 @@ import loginserver
 import database
 import p2p
 from jinja2 import Environment, FileSystemLoader
+import helper
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 j2_env = Environment(loader=FileSystemLoader(THIS_DIR), trim_blocks=True)
@@ -41,8 +42,18 @@ class MainApp(object):
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
         else:
+
+            all_broadcasts = database.getAllBroadcasts()
+            data = []
+            for broadcast in all_broadcasts:
+                tup = {}            
+                tup["message"] = broadcast.get("message")
+                tup["username"] = broadcast.get("username")
+                time = broadcast.get("sender_created_at")
+                tup["time"] = helper.formatTime(time)
+                data.append(tup)
             template = j2_env.get_template('web/index.html')
-            output = template.render()
+            output = template.render(broadcasts=data)
         return output
     
     @cherrypy.expose
@@ -64,6 +75,9 @@ class MainApp(object):
           
             if broadcasts is None:
                 broadcasts = [] 
+            for broadcast in broadcasts:
+                time = broadcast.get("sender_created_at")
+                broadcast["time"] = helper.formatTime(time)
             if profile is None:
                 profile = database.getUserData(username)      
                 isOwn = True        
@@ -89,15 +103,31 @@ class MainApp(object):
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
         else:
+            data = {}
             template = j2_env.get_template('web/message.html')
+            logserv.getUsers()
+            users = database.getAllUsers()
+            
+            for user in users:
+                username = user.get("username", None)
+                status = user.get("status", None)
+                if username is None or status is None:
+                    continue
+                data[username]=status
+
             if name is not None:
                 username = cherrypy.session.get("username")
                 messages = database.getUserConversation(username, name)
                 if messages is None:
                     messages = []
-                output = template.render(username=name,messages=messages)
+                for message in messages:
+                    time = message["sender_created_at"]
+                    time = helper.formatTime(time)
+                    message["time"] = time
+                
+                output = template.render(username=name,messages=messages, onlineusers=data)
             else: 
-                output = template.render(username=None, messages=[])
+                output = template.render(username=None, messages=[], onlineusers=data)
         return output
         
         
@@ -193,13 +223,12 @@ class MainApp(object):
         all_broadcasts = database.getAllBroadcasts()
         data = []
         for broadcast in all_broadcasts:
-            tup = {}
-            message = broadcast.get("message")
-            
-            username = broadcast.get("username")
-            loginserver = broadcast.get("loginserver_record")
-            tup["message"] = message
-            tup["username"] = username
+            tup = {}            
+            tup["message"] = broadcast.get("message")
+            tup["username"] = broadcast.get("username")
+            time = broadcast.get("sender_created_at")
+            tup["time"] = helper.formatTime(time)
+
             data.append(tup)
         JSON = {"data": data}
 

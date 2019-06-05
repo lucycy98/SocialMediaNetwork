@@ -117,7 +117,7 @@ def getAllSentMessages(username, target_username, since=None):
 def getAllBroadcasts(since=None):
     conn, c = loadDatabase()
     if not since: 
-        c.execute("SELECT * FROM broadcasts")
+        c.execute("SELECT * FROM broadcasts ORDER BY sender_created_at ASC")
     else:
         c.execute("SELECT * FROM broadcasts WHERE sender_created_at > {since}".format(since=since))
     result = c.fetchall()

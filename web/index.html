@@ -22,37 +22,29 @@
         </div>
     </div>
 
-    <div id='newposts'>hmm</div>
+    <div id='newposts'></div>
 
-    <div class='block_container'>           
-        <div class='cont'>
-            <h3>@lche982 <img class='vertical-align-img' src=img/block.svg style="width: 1em"></h3>
-            <p>Hello this is a tweet heheheheh</p> </br>
-            <img class='icons' src=img/like.svg style="width: 1.5em">
-
-        </div>
-    </div>
-
-    <div class='block_container'>           
+    {% if broadcasts|length == 0 %}
+    <div class='block_container'>
             <div class='cont'>
-                <h3>@lche982 <img class='vertical-align-img' src=img/block.svg style="width: 1em"></h3>
-                <p>Hello this is a tweet heheheheh</p> </br>
-                <img class='icons' src=img/like.svg style="width: 1.5em">
-    
+                This user has not made any broadcasts.
             </div>
         </div>
+    
+    {% endif %}
 
-        <div class='block_container'>           
-                <div class='cont'>
-                    <h3>@lche982 <img class='vertical-align-img' src=img/block.svg style="width: 1em"></h3>
-                    <p>Hello this is a tweet heheheheh</p> </br>
-                    <img class='icons' src=img/like.svg style="width: 1.5em">
-        
-                </div>
+    {% for broadcast in broadcasts %}
+
+        <div class='block_container'>
+            <div class='cont'>
+                <h3><a href='?name={{broadcast["username"]}}'>{{broadcast["username"]}}</a></h3>
+                <p id=time-stamp>{{broadcast["time"]}}</p>
+                <p>{{broadcast["message"]}}</p> </br>
+                <img class='icons' src=img/like.svg style="width: 1.5em">
             </div>
+        </div>
+    {% endfor %}
 
 </div>
 
-
-<script src="js/index.js"></script>
 {% endblock %}

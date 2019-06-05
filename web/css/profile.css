@@ -1,3 +1,22 @@
+h3 a:link, h3 a:visited{
+  text-decoration: none;
+  color: #000000;
+}
+
+#time-stamp{
+  color: #696767;
+  margin-top: -0.5em;
+  padding-bottom: 0.5em;
+
+}
+
+h3 a:hover {
+  color: #505050;
+}
+
+h3{
+  line-height: 0.5em;
+}
 input[type=text] {
     border-radius: 20px;
     width: 100%;

@@ -29,10 +29,33 @@ input {
     list-style-type: none;
   }
   
-  .blue_box, .green_box {
+  .blue_box, .green_box, .time-right, .time-left{
     display: block;
     clear:both;
 }
+
+.time-right span{
+  padding: 0.6em;
+  margin-top: 0.6em;
+  margin-bottom: 0.6em;
+  border-radius: 0.2em;
+  background-color:  white;
+  color: #696767;
+  display: block;
+  float: right;
+
+}
+
+.time-right span {
+  padding: 0em;
+  margin-top: 0em;
+  margin-bottom: 0.6em;
+  color: #696767;
+  display: block;
+  float: right;
+}
+
+
 .blue_box span {
     padding: 0.6em;
     margin-top: 0.6em;
@@ -44,8 +67,7 @@ input {
     float: right;
 }
 .green_box span {
-    
-
+  
     background-color: #f2f2f2;
     color: black;
     padding: 0.6em;
@@ -55,6 +77,16 @@ input {
     display: block;
     float: left;
 }
+
+.time-left span {
+  padding: 0em;
+  margin-top: 0em;
+  margin-bottom: 0.6em;
+  color: #696767;
+  display: block;
+  float: left;
+}
+
 
 .team-list {
     background-color: #f2f2f2;
@@ -66,11 +98,6 @@ input {
     padding: 0.6em;
   }
 
-  .team-list li:hover a:link{
-    background-color: #b1b1b1;
-    border-radius: 10em;
-    cursor:pointer;
-  }
 
 
 
@@ -154,6 +181,17 @@ input[type=text] {
     width: inherit;
   }
 
+.buttons {
+    border-radius: 10px;
+    padding: 0.8em 1.5em;
+    outline: none;
+    border: 1px solid #cacaca;
+    background-color: #17bd93;
+    color: #ffffff;
+    width: inherit;
+    float: right;
+  }
+
 
   ::-webkit-scrollbar {
     width: 5px; 
@@ -232,3 +270,49 @@ table{
   text-decoration: none;
   cursor: pointer;
 }
+
+label input {
+  visibility: hidden;/* <-- hide the default checkbox, the rest is to hide and alllow tabbing, which display:none prevents */
+  display:block;
+  height:0;
+  width:0;
+  position:absolute;
+  overflow:hidden;
+}
+label span {/* <-- style the artificial checkbox */
+  height: 20px;
+  width: 20px;
+  border: 1px solid grey;
+  float: right;
+  vertical-align: centre;
+}
+[type=checkbox]:checked + span{/* <-- style its checked state */
+  background: black;
+}
+
+.people-list {
+  list-style-type: none;
+}
+
+.people-list li {
+  padding: 1em;
+  text-align: center;
+  width: 100%;
+  margin-left:0px;
+}
+
+.people-list li:hover{
+  background-color: #b1b1b1;
+  border-radius: 10em;
+}
+
+.team-list li:hover{
+  background-color: #b1b1b1;
+  border-radius: 10em;
+  cursor:pointer;
+}
+
+a:link, a:visited {
+  text-decoration: none;
+}
+

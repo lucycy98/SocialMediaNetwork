@@ -9,25 +9,8 @@ import helper
 
 
 
-
-if destination == cherrypy.session['userdata'].username:
-        peer['ip'] = 'localhost'
-elif peer['location'] == '2':
-        pass
-elif peer['location'] == cherrypy.session['userdata'].location:
-        pass
-else:
-        raise cherrypy.HTTPRedirect("home")
-try:
-        payload = json.dumps(data)
-        req = urllib2.Request('http://' + unicode(peer['ip']) + ':' + unicode(
-        peer['port']) + '/handshake', payload, {'Content-Type': 'application/json'})
-        response = urllib2.urlopen(req, timeout=2).read()
-        response = json.loads(response)
-        if response['message'] == text:
-                return ("nope.")
-except:
-        return ('7: Hash does not match')
+ctime = time.time()
+print(helper.formatTime(ctime))
 
 def idk():
         username = "lche982"

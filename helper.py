@@ -8,6 +8,7 @@ import nacl.signing
 import base64
 from nacl import pwhash, secret, utils
 import nacl.hash
+from datetime import datetime
 
 #salt = b'\xa3\x95\\\xec\x1cFpr8\xb7\x92\x7f\x18%)\x88'
 
@@ -129,5 +130,10 @@ def decryptStringKey(key, input):
     data = plaintext.decode("utf-8") 
 
     return data
+
+def formatTime(unix):
+    ts = int(unix)
+    dateobj = datetime.fromtimestamp(ts).strftime('%d/%m/%Y %H:%M %p')
+    return dateobj
 
 

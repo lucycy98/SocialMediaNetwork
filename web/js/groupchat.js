@@ -10,7 +10,7 @@ var span = document.getElementsByClassName("close")[0];
 // When the user clicks on the button, open the modal 
 btn.onclick = function() {
   modal.style.display = "block";
-  loadPeopldsName()
+  //loadPeopldsName()
 }
 
 // When the user clicks on <span> (x), close the modal
@@ -28,10 +28,10 @@ window.onclick = function(event) {
 $(document).ready(function() {
     $("button").click(function(){
         var names = [];
-        $.each($("input[name='sport']:checked"), function(){            
+        $.each($("input[name='username']:checked"), function(){            
             names.push($(this).val());
         });
-        document.getElementById("hello").innerHTML = names.join(", ");
+        //document.getElementById("hello").innerHTML = names.join(", ");
         makeGroupChat(names)
     });
 });
@@ -59,11 +59,12 @@ function loadPeopldsName() {
 
 		for (var key in obj) { 
 			if (obj.hasOwnProperty(key)) {
-				username = key
-                Page += "<tr><td class = 'username-td'>" + username + "</td><td class = 'box-td'><input type='checkbox' value='" + username +"' name='username'></td></tr>"
+                username = key
+                Page += "<li><label><input type='checkbox' value='" + username +"' name='username'><span></span>" + username + "</label></li>"
+                //Page += "<tr><td class = 'username-td'>" + username + "</td><td class = 'box-td'><input type='checkbox' value='" + username +"' name='username'></td></tr>"
 			}
 		}
-		document.getElementById("group-table").innerHTML = Page;
+		document.getElementById("group-list").innerHTML = Page;
 		}
 	};
 	xhttp.open("GET", "listActiveUsers", true);

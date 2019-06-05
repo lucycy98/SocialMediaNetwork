@@ -63,7 +63,8 @@
 
         <div class='block_container'>
             <div class='cont'>
-                <h3>{{profile["username"]}}</h3>
+                <h3><a href='?name={{profile["username"]}}'>{{profile["username"]}}</a></h3>
+                <p id=time-stamp>{{broadcast["time"]}}</p>
                 <p>{{broadcast["message"]}}</p> </br>
                 <img class='icons' src=img/like.svg style="width: 1.5em">
             </div>

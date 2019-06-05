@@ -40,13 +40,9 @@
 
         </div>
         <ul class=team-list>
-            <li>compsys 302</li>
-            <li>compsci 213</li>
-            <li></li>
-            <li></li>
-            <li></li>
-            <li></li>
-            <li></li>
+            {% for groupchat in groupchats %}
+            <a href='?groupname={{groupchat["groupkey_hash"]}}'><li>{{ groupchat["groupkey_hash"] }}</li></a>
+            {% endfor %}
         </ul>
         
         <b>Users</b>
@@ -59,19 +55,25 @@
 
     </div>
     <div id="msgheader" class='header box'>
-        {% if not username %}
-            Message
-        {% else %}
+        {% if username %}
             <a href='profile?name={{username}}'>{{ username }}</a>
+        {% elif groupname %}
+            {{ groupname }}
+        {% else %}
+            Message            
         {% endif %}
     </div>
     <div class='messages box webkit-scrollbar webkit-scrollbar-thumb'>
         <ul id="pm" class='message-list'>
-            {% if messages|length == 0 and not username %}
-                Click on a user and start chatting!
-            {% elif messages|length == 0 and username %}
+            
+            {% if messages|length == 0 and username %}
                 Start a conversation with {{ username }}
+            {% elif messages|length == 0 and groupname %}
+                Start a conversation with {{ groupname }}
+            {% elif messages|length == 0%}
+                Click on a user or group and start chatting!
             {% endif %}
+
             {% for messageObj in messages %}
                 {% if messageObj["sent"] == "sent" %}
                     <li><div class='blue_box'><span>{{ messageObj["message"] }}</span></div></li>
@@ -85,11 +87,19 @@
     </div>
 
     <div class='input box'>
+        {% if username %}
         <form action="/sendPrivateMessage" method="post" enctype="multipart/form-data">
             <input type="text" name="message" placeholder='Send a message'>
-            <input type="hidden" name="target_user" id="targetuser">
+            <input type="hidden" name="target_user" value='{{ username }}'>
             <input type="submit" value="Send">
         </form>
+        {% elif groupname %}
+        <form action="/sendGroupMessage" method="post" enctype="multipart/form-data">
+            <input type="text" name="message" placeholder='Send a message'>
+            <input type="hidden" name="groupname" value='{{ groupname }}'>
+            <input type="submit" value="Send">
+        </form>
+        {% endif %}
     </div>
 </div>
 <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>

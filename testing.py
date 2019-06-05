@@ -8,9 +8,8 @@ import nacl.hash
 import helper
 
 
-
-ctime = time.time()
-print(helper.formatTime(ctime))
+broadcasts = database.getAllBroadcasts(checkMessages=True)
+print(broadcasts)
 
 def idk():
         username = "lche982"

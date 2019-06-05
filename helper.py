@@ -23,7 +23,7 @@ def postJson(payload, headers, url):
     try:
         req = urllib.request.Request(url, data=payload, headers=headers)
 
-        response = urllib.request.urlopen(req, timeout=2)
+        response = urllib.request.urlopen(req, timeout=5)
         data = response.read() # read the received bytes
         encoding = response.info().get_content_charset('utf-8') #load encoding if possible (default to utf-8)
         response.close()
@@ -95,6 +95,21 @@ def encryptMessage(message, publickey_hex):
     message_encr = encrypted.decode('utf-8')
     return message_encr
 
+def decryptMessage(message, privatekey):
+    #publickey_hex contains the target publickey
+    #using the nacl.encoding.HexEncoder format
+    box = nacl.secret.SecretBox(key)
+    plaintext = box.decrypt(input) #should be bytes
+    data = plaintext.decode("utf-8") 
+    key = privatekey.to_curve25519_private_key()
+    sealed_box = nacl.public.SealedBox(key)
+    message_bytes = message
+    if isinstance(message, str):
+        message_bytes = bytes(message, encoding='utf-8')
+    decrypted = sealed_box.decrypt(message_bytes, encoder=nacl.encoding.HexEncoder)
+    decrypted_message = decrypted.decode('utf-8')
+    return decrypted_message
+
 def getSymmetricKeyFromPassword(password):
     password = bytes(password, encoding='utf-8')
     long_salt = nacl.pwhash.argon2i.SALTBYTES * password
@@ -135,5 +150,24 @@ def formatTime(unix):
     ts = int(unix)
     dateobj = datetime.fromtimestamp(ts).strftime('%d/%m/%Y %H:%M %p')
     return dateobj
+
+def getEncryptionKey(logserv,groupkey_hash):
+    private_data = logserv.getPrivateData()
+    prikeys = private_data.get("prikeys", None)
+    for prikey_str in prikeys:
+        prikey = bytes.fromhex(prikey_str)
+        hash_key = getShaHash(prikey)
+        print(hash_key)
+        if hash_key == groupkey_hash:
+            return prikey
+    return None
+
+def bytestoStringNacl(bytes_input):
+    bytes_hex = bytes_input.hex()
+    bytes_hex_str = bytes_hex.decode('utf-8')
+    return bytes_hex_str
+
+    
+
 
 

@@ -44,6 +44,8 @@ class MainApp(object):
         else:
 
             all_broadcasts = database.getAllBroadcasts()
+            if not all_broadcasts:
+                all_broadcasts = []
             data = []
             for broadcast in all_broadcasts:
                 tup = {}            
@@ -97,16 +99,21 @@ class MainApp(object):
         return output
 
     @cherrypy.expose
-    def message(self, name=None):
+    def message(self, name=None, groupname=None):
 
         logserv = cherrypy.session.get("logserv", None)
+        
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
         else:
+            messages = []
             data = {}
             template = j2_env.get_template('web/message.html')
             logserv.getUsers()
             users = database.getAllUsers()
+            groupchats = database.getAllGroupChats(cherrypy.session["username"])
+            if not users:
+                users = []
             
             for user in users:
                 username = user.get("username", None)
@@ -115,19 +122,44 @@ class MainApp(object):
                     continue
                 data[username]=status
 
-            if name is not None:
+            if name is not None or groupname is not None:
+                signing_key = logserv.signing_key
                 username = cherrypy.session.get("username")
-                messages = database.getUserConversation(username, name)
+                isGroup = False
+                if name is not None:
+                    messages = database.getUserConversation(username, name)
+                else:
+                    messages = database.getGroupConversation(username, groupname)
+                    isGroup = True
+                    print("group messages")
+                    print(messages)
+                    print(groupname)
                 if messages is None:
                     messages = []
+                
+                print(messages)
                 for message in messages:
                     time = message["sender_created_at"]
                     time = helper.formatTime(time)
-                    message["time"] = time
-                
-                output = template.render(username=name,messages=messages, onlineusers=data)
-            else: 
-                output = template.render(username=None, messages=[], onlineusers=data)
+                    message["time"] = time 
+
+                    encr_message = ["message"]
+                    status = status["sent"]
+
+                    if status == "received" and isGroup:
+                        try: 
+                            decr_message = helper.decryptStringKey(key, encr_message)
+                        except Exception as e:
+                            print("FAILED decripting group recieved message!@!!!!")
+                            print(e)
+                    else:
+                        try:
+                            decr_message = helper.decryptMessage(encr_message, signing_key)
+                        except Exception as e:
+                            print("FAILED decryption sent message with private key!@!!!!")
+                            print(e)
+                    message["message"] = decr_message
+        output = template.render(username=name,messages=messages, onlineusers=data, groupchats=groupchats, groupname=groupname)
         return output
         
         
@@ -260,8 +292,20 @@ class MainApp(object):
         if p2p is None:
             pass
         else:
+            print(target_user)
             p2p.sendPrivateMessage(message, target_user)
         raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=target_user)) 
+    
+    @cherrypy.expose
+    def sendGroupMessage(self, message, groupname):
+        p2p = cherrypy.session.get("p2p", None)
+        if p2p is None:
+            pass
+        else:
+            print("group name is ")
+            print(groupname)
+            p2p.sendGroupMessage(groupname, message)
+        raise cherrypy.HTTPRedirect('/message?groupname={a}'.format(a=groupname)) 
 
 
     @cherrypy.expose
@@ -274,9 +318,15 @@ class MainApp(object):
             payload = cherrypy.request.json
             print("RECIEVED GROUP CHAT PAYLOAD!!")
             print(payload)
-
-            #p2p.sendPrivateMessage(message, target_user)
-            
+            names = payload["names"]
+            if len(names) == 1:
+                #create message instead of group chat
+                raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=names[0]))
+            elif len(names) == 0:
+                return
+            error = p2p.createGroupChatP2p(names)
+            if error == 0: #invite sent to at least one person for every req
+                print("OK")            
         #raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=target_user)) 
     
     @cherrypy.expose

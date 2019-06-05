@@ -13,31 +13,6 @@ function refreshInfo() {
   var interval = setInterval(refreshInfo, 10000);
 
 
-
-function loadOnline() {
-	var xhttp = new XMLHttpRequest();
-	xhttp.onreadystatechange = function() {
-        
-	if (this.readyState == 4 && this.status == 200) {
-		var obj = JSON.parse(this.response)
-		Page = ""
-
-		for (var key in obj) { 
-			if (obj.hasOwnProperty(key)) {
-				username = key
-				status = obj[username]
-				Page += "<a href='?name=" + username + "'><li>"+status +  " " + username +"</li></a>";
-				//Page += "<a id='" + username + "' href='' onclick='clickfuncMessage(this.id)'><li>"+status +  " " + username +"</li></a>";
-			}
-		}
-		document.getElementById("all_users").innerHTML = Page;
-		}
-	};
-	xhttp.open("GET", "listActiveUsers", true);
-	xhttp.timeout = 8000;
-	xhttp.send(null); 
-}
-
 function report() {
 	var xhttp = new XMLHttpRequest();
 	xhttp.open("GET", "reportUser?status=online", true);

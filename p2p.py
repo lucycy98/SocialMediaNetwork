@@ -34,7 +34,6 @@ class p2p():
         print(signed.message)
         signature_hex_str = signed.signature.decode('utf-8')
         
-        
         payload = {
             "loginserver_record": loginserver_record,
             "message": message,
@@ -98,8 +97,13 @@ class p2p():
         url = "http://" + user_address + "/api/rx_privatemessage"
         if send_user == "admin":
             url = "http://cs302.kiwi.land/api/rx_privatemessage"
-    
-        database.addsentMessages(self.username, send_user, message, ts, "user") #maybe change to encrypted? nah
+        pubkey_hex = self.signing_key.verify_key.encode(encoder=nacl.encoding.HexEncoder)
+        try:
+            self_encrypted_message = helper.encryptMessage(message, pubkey_hex)
+        except Exception as e: 
+            print("failed to encrypt sent message.")
+            print(e)
+        database.addsentMessages(self.username, send_user, self_encrypted_message, ts, "user") #maybe change to encrypted? nah
 
         try:
             JSON_object = helper.postJson(payload, headers, url)
@@ -114,9 +118,13 @@ class p2p():
     
     def createGroupChatP2p(self, target_usernames):
         print("creating group chats")
+        error = 1
         #generating symmetric keys to be stored
         key = helper.generateRandomSymmetricKey()
-        helper.addToPrivateData(self.logserv, "prikeys", key) #not sure if you can add bytes here....TODO
+        key_str = key.hex()
+        print("original key is")
+        print(key)
+        helper.addToPrivateData(self.logserv, "prikeys", key_str) #not sure if you can add bytes here....TODO
 
         #check to see if group exists already
         #TODO
@@ -124,9 +132,18 @@ class p2p():
         #create a group invite
         loginserver_record = database.getUserInfo(self.username, "loginrecord")
         groupkey_hash = helper.getShaHash(key)
+        print("group key hash is ")
+        print(groupkey_hash)
         groupkey_hash_str = groupkey_hash.decode('utf-8')
+        database.addGroupChatReceived(groupkey_hash_str, self.username)
+
+        encr = helper.getEncryptionKey(self.logserv, groupkey_hash)
+        print("encr is")
+        print(encr)
+        
 
         for user in target_usernames:
+            database.addGroupChatReceived(groupkey_hash_str, user) #change TODO only add if successful.
             username = user
             user = database.getUserData(username)
             user_address = user.get("address", None)
@@ -166,18 +183,30 @@ class p2p():
                 response = JSON_object.get("response", None)
                 if response == "ok":
                     print("group invite sent successfully")
+                    error = 0
                 else:
                     print("response not OK")
             except:
                 print("FAILED TO SEND!")
+        return error
     
     def sendGroupMessage(self, target_group_hash, message):
         headers = self.createAuthorisedHeader(True)
         print(headers)
         print(message)
-        key = "6767567jbkjghjbgjhnb"
+        print("target group hash")
+        print(target_group_hash)
+        print("")
+        target_group_bytes = bytes(target_group_hash, encoding='utf-8')
+        key = helper.getEncryptionKey(self.logserv,target_group_bytes)
         
-        encr_message = helper.encryptStringKey(key, message)
+        print("KEY IS")
+        if not key:
+            print("ERROR!!!!!!!!!!!!!!!1")
+            return 1
+        
+        encr_message = helper.encryptStringKey(key, message).hex() #TODO change if hex is appropriate.
+        #encr_message = helper.encryptMessage(message, user_pubkey)
         loginserver_record = database.getUserInfo(self.username, "loginrecord")        
         ts = str(time.time())
         message_bytes = bytes(loginserver_record+encr_message+ts, encoding='utf-8')
@@ -191,7 +220,15 @@ class p2p():
             "sender_created_at": ts,
             "signature": signature_hex_str
         }
-        database.addsentMessages(self.username, target_group_hash, message, ts, "group")
+        pubkey_hex = self.signing_key.verify_key.encode(encoder=nacl.encoding.HexEncoder)
+        try:
+            self_encrypted_message = helper.encryptMessage(message, pubkey_hex)
+        except Exception as e: 
+            print("failed to encrypt sent message.")
+            print(e)
+        database.addsentMessages(self.username, target_group_hash, self_encrypted_message, ts, "group")
+        print("database")
+        print(target_group_hash)
         all_users = database.getAllUsers()
 
         for user in all_users:
@@ -230,6 +267,46 @@ class p2p():
             data.append(tup)
         JSON = {"data": data}
         return JSON
+
+    def retrieveOfflineData(self):
+        headers = self.createAuthorisedHeader(True)
+
+        since = str(time.time())
+        all_users = database.getAllUsers()
+        for user in all_users:
+            user_address = user.get("address", None)
+            user_status = user.get("status", None)
+            if user_address is None or user_status != "online":
+                continue
+            url = "http://" + user_address + "/api/rx_checkmessages?since=" + since
+            print(url)
+
+            try:
+                JSON_object = helper.postJson(None, headers, url)
+                print(JSON_object)
+            except:
+                print("FAILED TO sent group message!")
+                return 1
+
+            response = JSON_object.get("response", None)
+            if response == "ok":
+                broadcasts = JSON_object.get("broadcasts", None)
+                private_messages = JSON_object.get("private_messages", None)
+                for broadcast in broadcasts:
+                    loginserver_record = broadcast.get("loginserver_record", None)
+                    if not loginserver_record:
+                        continue
+                    username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
+                    database.addBroadCast(broadcast.get("loginserver_record", None), broadcast.get("message", None), broadcast.get("sender_created_at", None), broadcast.get("signature", None), username)
+                for pm in private_messages:
+                    loginserver_record = broadcast.get("loginserver_record", None)
+                    if not loginserver_record:
+                        continue
+                    username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
+                    database.addReceivedMessage(pm.get("target_username", None), pm.get("target_pubkey", None), pm.get("encrypted_message", None), pm.get("sender_created_at", None), pm.get("signature", None), username, loginserver_record)
+            else:
+                print("response not OK")
+
 
         
     '''
@@ -270,10 +347,10 @@ class p2p():
         message = "test Message"
         user = database.getUserData(target_username)
         user_pubkey = user.get("pubkey", None)
+        loginrecord = user.get("loginserver_record", None)
         encr_message = helper.encryptMessage(message, user_pubkey)
-        loginserver_record = database.getUserInfo(sender_username, "loginrecord")        
         ts = str(time.time())
-        database.addReceivedMessage(target_username, user_pubkey, encr_message, ts, message, sender_username) #sending myself a message.
+        database.addReceivedMessage(target_username, user_pubkey, encr_message, ts, message, sender_username, loginrecord) #sending myself a message.
         
 
             

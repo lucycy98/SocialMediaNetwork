@@ -12,7 +12,7 @@ def initialiseTable(c, conn):
     c.execute("CREATE TABLE userhashes (username STRING NOT NULL, hash STRING, loginrecord STRING)")  
     
     c.execute("CREATE TABLE broadcasts (loginserver_record STRING NOT NULL, message STRING, sender_created_at INT(11), signature STRING, username STRING)") 
-    c.execute("CREATE TABLE receivedMessages (target_username STRING NOT NULL, target_pubkey STRING NOT NULL, encrypted_message STRING, sender_created_at INT(11), signature STRING, sender_username STRING, sent STRING)") 
+    c.execute("CREATE TABLE receivedMessages (target_username STRING NOT NULL, target_pubkey STRING NOT NULL, encrypted_message STRING, sender_created_at INT(11), signature STRING, sender_username STRING, sent STRING, loginserver_record STRING)") 
     c.execute("CREATE TABLE groups (groupkey_hash STRING NOT NULL, username STRING)")
     c.execute("CREATE TABLE groupMessages (groupkey_hash STRING, send_user STRING, group_message STRING, sender_created_at INT(11), received STRING)")
     c.execute("CREATE TABLE sentMessages (username STRING NOT NULL, target_username STRING, message STRING, sender_created_at INT(11), sent STRING, isGroup STRING)")
@@ -47,12 +47,23 @@ def checkUsernamePassword(username, password):
 
     return 0
 
+def getAllGroupChats(username):
+    conn, c = loadDatabase()
+    c.execute("SELECT * FROM groups WHERE username='{a}'".format(a = username))
+    result = c.fetchall()
+    if len(result) == 0:
+        closeDatabase(conn)
+        return []
+    data = resultToJSON(result, c)
+    closeDatabase(conn)
+    return data
+
 def addGroupChatReceived(groupkey_hash, username):
     conn, c = loadDatabase()
     c.execute("SELECT * FROM groups WHERE groupkey_hash='{b}' AND username='{a}'".format(a = username, b=groupkey_hash))
     result = c.fetchall()
     if len(result) == 0:
-        c.execute("INSERT INTO users VALUES('{b}', '{a}'".format(a = username, b=groupkey_hash))
+        c.execute("INSERT INTO groups VALUES('{b}', '{a}')".format(a = username, b=groupkey_hash))
     closeDatabase(conn)
     
 
@@ -82,9 +93,9 @@ def getGroupConversation(username, group_hash):
 
     query = """ SELECT message, username, sender_created_at, sent 
                 FROM sentMessages 
-                WHERE username='{username}' AND isGroup='user' AND target_username='{group_hash}'
+                WHERE username='{username}' AND isGroup='group' AND target_username='{group_hash}'
                     UNION ALL
-                SELECT group_message, send_user, sender_created_at, sent 
+                SELECT group_message, send_user, sender_created_at, received 
                 FROM groupMessages 
                 WHERE groupkey_hash='{group_hash}'
                 ORDER BY sender_created_at ASC""".format(group_hash=group_hash, username=username)
@@ -114,12 +125,17 @@ def getAllSentMessages(username, target_username, since=None):
     return data
 
 #get all broadcasts since....
-def getAllBroadcasts(since=None):
+def getAllBroadcasts(since=None, checkMessages=None):
     conn, c = loadDatabase()
     if not since: 
-        c.execute("SELECT * FROM broadcasts ORDER BY sender_created_at ASC")
-    else:
+        since = 0
+
+    if not checkMessages:
         c.execute("SELECT * FROM broadcasts WHERE sender_created_at > {since}".format(since=since))
+    else:
+        c.execute("SELECT loginserver_record, message, sender_created_at, signature FROM broadcasts WHERE sender_created_at > {since}".format(since=since))
+
+
     result = c.fetchall()
     if len(result) == 0:
         closeDatabase(conn)
@@ -142,10 +158,12 @@ def getAllBroadcastsUser(username):
     return data
 
 #get all messages since....
-def getAllMessages(since=None):
+def getAllMessages(since=None, checkMessages=None):
     conn, c = loadDatabase()
     if not since: 
-        c.execute("SELECT * FROM receivedMessages")
+        since = 0
+    if not checkMessages:
+        c.execute("SELECT * FROM receivedMessages WHERE sender_created_at > {since}".format(since=since))
     else:
         c.execute("SELECT * FROM receivedMessages WHERE sender_created_at > {since}".format(since=since))
     result = c.fetchall()
@@ -172,9 +190,9 @@ def getSpecificMessages(username, sender_username, since=None):
     return data
 
 
-def addReceivedMessage(target_username, target_pubkey, encrypted_message, timestamp , signature, their_username):
+def addReceivedMessage(target_username, target_pubkey, encrypted_message, timestamp , signature, their_username, loginrecord):
     conn, c = loadDatabase()
-    c.execute("INSERT INTO receivedMessages VALUES('{target_username}','{target_pubkey}','{encrypted_message}','{timestamp}','{signature}', '{a}', 'received')".format(a=their_username, target_username=target_username, target_pubkey=target_pubkey, encrypted_message=encrypted_message, timestamp=timestamp, signature=signature))
+    c.execute("INSERT INTO receivedMessages VALUES('{target_username}','{target_pubkey}','{encrypted_message}','{timestamp}','{signature}', '{a}', 'received', '{login}')".format(a=their_username, target_username=target_username, target_pubkey=target_pubkey, encrypted_message=encrypted_message, timestamp=timestamp, signature=signature, login=loginrecord))
     closeDatabase(conn)
 
 def addGroupMessage(groupkey_hash, send_user, encrypted_message, timestamp):

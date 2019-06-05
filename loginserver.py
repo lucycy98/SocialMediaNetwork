@@ -160,8 +160,8 @@ class loginserver():
             online_users.append(user.get("username"))
 
             if not status:
-                    status = "online"
-            database.updateUsersInfo(username, user.get("connection_address", None), user.get("connection_location", None), user.get("incoming_pubkey", None), user.get("connection_updated_at", None), status)
+                status = "online"
+            database.updateUsersInfo(username, user.get("connection_address", None), user.get("connection_location", None), user.get("incoming_pubkey", None), str(user.get("connection_updated_at", None)), status)
 
         all_users = database.getAllUsers()
 

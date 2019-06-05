@@ -119,7 +119,7 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
-                database.addReceivedMessage(target_username, target_pubkey, encr_message, sender_created_at, encr_message, username)
+                database.addReceivedMessage(target_username, target_pubkey, encr_message, sender_created_at, encr_message, username, loginserver_record)
         response = helper.generateResponseJSON(error)
         return response
     
@@ -151,6 +151,15 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
+
+                if target_username == cherrypy.session("username"):
+                    try:
+                        decrypted_groupkey = helper.decryptStringKey(target_pubkey, encr_groupkey)
+                    except Exception as e:
+                        print(e)
+                    else:
+                        logserv = cherrypy.session("logserv")
+                        helper.addToPrivateData(logserv, "prikeys", decrypted_groupkey) #not sure if you can add bytes here....TODO
                 database.addGroupChatReceived(groupkey_hash, target_username)
                 #TODO update keys. 
         response = helper.generateResponseJSON(error)
@@ -185,3 +194,20 @@ class MainApp(object):
                 database.addGroupMessage(groupkey_hash, username, group_message, sender_created_at)
         response = helper.generateResponseJSON(error)
         return response
+    
+    #recieving private messages
+    @cherrypy.expose
+    @cherrypy.tools.json_out()
+    def rx_checkmessages(self, since=None):
+        print("recieving check messages!")
+        if not since: 
+            since = 0
+        broadcasts = database.getAllBroadcasts(since=int(since), checkMessages=True)
+        pms = database.getAllMessages(since=int(since), checkMessages=None)
+
+        payload = {
+            "response": "ok",
+            "broadcasts": broadcasts,
+            "private_messages": pms
+        }
+        return payload

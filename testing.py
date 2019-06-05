@@ -7,9 +7,17 @@ from nacl import pwhash, secret, utils
 import nacl.hash
 import helper
 
+signing_key = nacl.signing.SigningKey.generate() #PRIVATE KEY!!!
+pubkey = signing_key.verify_key
+pubkey_hex = pubkey.encode(encoder=nacl.encoding.HexEncoder)
+message = "hi"
+message_hm = helper.encryptMessage(message, pubkey_hex)
 
-broadcasts = database.getAllBroadcasts(checkMessages=True)
-print(broadcasts)
+decrypted = helper.decryptMessage(message_hm, signing_key)
+print(decrypted)
+
+
+
 
 def idk():
         username = "lche982"

@@ -97,10 +97,7 @@ def encryptMessage(message, publickey_hex):
 
 def decryptMessage(message, privatekey):
     #publickey_hex contains the target publickey
-    #using the nacl.encoding.HexEncoder format
-    box = nacl.secret.SecretBox(key)
-    plaintext = box.decrypt(input) #should be bytes
-    data = plaintext.decode("utf-8") 
+    #using the nacl.encoding.HexEncoder format 
     key = privatekey.to_curve25519_private_key()
     sealed_box = nacl.public.SealedBox(key)
     message_bytes = message

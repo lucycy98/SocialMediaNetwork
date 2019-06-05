@@ -143,11 +143,24 @@ class MainApp(object):
                     time = helper.formatTime(time)
                     message["time"] = time 
 
-                    encr_message = ["message"]
-                    status = status["sent"]
+                    encr_message = message["message"]
+                    status = message["sent"]
+                    decr_message = None
 
                     if status == "received" and isGroup:
-                        try: 
+                     
+                        key = helper.getEncryptionKey(logserv, groupname)
+                        decr_message = helper.decryptStringKey(key, encr_bytes)
+                       
+                    else:
+                        decr_message = helper.decryptMessage(encr_message, signing_key)
+                        print(decr_message)
+                        
+                    '''
+
+                    if status == "received" and isGroup:
+                        try:
+                            key = helper.getEncryptionKey(logserv, groupname) 
                             decr_message = helper.decryptStringKey(key, encr_message)
                         except Exception as e:
                             print("FAILED decripting group recieved message!@!!!!")
@@ -158,6 +171,10 @@ class MainApp(object):
                         except Exception as e:
                             print("FAILED decryption sent message with private key!@!!!!")
                             print(e)
+                            '''
+                    if not decr_message:
+                        print("ERROR")
+                        decr_message = "ERROR DECRYPTING"
                     message["message"] = decr_message
         output = template.render(username=name,messages=messages, onlineusers=data, groupchats=groupchats, groupname=groupname)
         return output
@@ -324,10 +341,10 @@ class MainApp(object):
                 raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=names[0]))
             elif len(names) == 0:
                 return
-            error = p2p.createGroupChatP2p(names)
+            error, groupkey_hash = p2p.createGroupChatP2p(names)
             if error == 0: #invite sent to at least one person for every req
                 print("OK")            
-        #raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=target_user)) 
+                raise cherrypy.HTTPRedirect('/message?groupname={a}'.format(a= groupkey_hash)) 
     
     @cherrypy.expose
     def reportUser(self, status=None):

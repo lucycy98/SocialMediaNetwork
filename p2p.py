@@ -188,7 +188,8 @@ class p2p():
                     print("response not OK")
             except:
                 print("FAILED TO SEND!")
-        return error
+            error = 0 #TODO CHNAGE THIS IS JUST FOR TETSING
+        return error, groupkey_hash
     
     def sendGroupMessage(self, target_group_hash, message):
         headers = self.createAuthorisedHeader(True)

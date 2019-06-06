@@ -182,6 +182,7 @@ class MainApp(object):
                     else:
                         decr_message = helper.decryptMessage(encr_message, signing_key)
                         print(decr_message)
+                        decr_message = decr_message.decode('utf-8')
                         
                     '''
 

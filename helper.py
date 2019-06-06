@@ -29,7 +29,8 @@ def postJson(payload, headers, url):
         response.close()
     except urllib.error.HTTPError as error:
         print(error.read())
-        exit()
+        #exit()
+        print("URL ERROR HTTP")
         return None #unneeded?
     
     JSON_object = json.loads(data.decode(encoding))
@@ -104,8 +105,8 @@ def decryptMessage(message, privatekey):
     if isinstance(message, str):
         message_bytes = bytes(message, encoding='utf-8')
     decrypted = sealed_box.decrypt(message_bytes, encoder=nacl.encoding.HexEncoder)
-    decrypted_message = decrypted.decode('utf-8')
-    return decrypted_message
+    #decrypted_message = decrypted.decode('utf-8')
+    return decrypted
 
 def getSymmetricKeyFromPassword(password):
     password = bytes(password, encoding='utf-8')
@@ -136,9 +137,12 @@ def encryptStringKey(key, input):
 takes in an encrypted messge, and returns a decryped version (string)
 '''
 #TODO: error message when the key cannot decrypt the message.
-def decryptStringKey(key, input):  
+def decryptStringKey(key, inputBytes):  
+    if isinstance(inputBytes, str):
+        inputBytes = bytes(inputBytes, encoding='utf-8')
+
     box = nacl.secret.SecretBox(key)
-    plaintext = box.decrypt(input) #should be bytes
+    plaintext = box.decrypt(inputBytes) #should be bytes
     data = plaintext.decode("utf-8") 
 
     return data
@@ -149,11 +153,15 @@ def formatTime(unix):
     return dateobj
 
 def getEncryptionKey(logserv,groupkey_hash):
+    print("get encryption key")
+    print("group key hash is")
+    print(groupkey_hash)
     private_data = logserv.getPrivateData()
     prikeys = private_data.get("prikeys", None)
     for prikey_str in prikeys:
         prikey = bytes.fromhex(prikey_str)
         hash_key = getShaHash(prikey)
+        print("hashkey is")
         print(hash_key)
         if hash_key == groupkey_hash:
             return prikey

@@ -16,6 +16,7 @@ def initialiseTable(c, conn):
     c.execute("CREATE TABLE groups (groupkey_hash STRING NOT NULL, username STRING)")
     c.execute("CREATE TABLE groupMessages (groupkey_hash STRING, send_user STRING, group_message STRING, sender_created_at INT(11), received STRING)")
     c.execute("CREATE TABLE sentMessages (username STRING NOT NULL, target_username STRING, message STRING, sender_created_at INT(11), sent STRING, isGroup STRING)")
+    c.execute("CREATE TABLE groupkeys (username STRING NOT NULL, groupkey_encr STRING)")
 
     conn.commit()
 
@@ -46,6 +47,28 @@ def checkUsernamePassword(username, password):
     closeDatabase(conn)
 
     return 0
+
+def addGroupKey(username, key_str):
+    conn, c = loadDatabase()
+    c.execute("INSERT INTO groupkeys VALUES('{a}', '{b}')".format(a=username, b=key_str))
+    closeDatabase(conn)
+
+def checkGroupKey(username):
+    conn, c = loadDatabase()
+    c.execute("SELECT * FROM groupkeys WHERE username='{a}'".format(a = username))
+    result = c.fetchall()
+    if len(result) == 0:
+        closeDatabase(conn)
+        return []
+    data = resultToJSON(result, c)
+    closeDatabase(conn)
+    return data
+
+def deleteGroupKey(username, groupkey):
+    conn, c = loadDatabase()
+    c.execute("DELETE FROM groupkeys WHERE username='{a}' AND groupkey_encr='{b}'".format(a=username, b=groupkey))
+    closeDatabase(conn)
+
 
 def getAllGroupChats(username):
     conn, c = loadDatabase()
@@ -99,7 +122,7 @@ def getGroupConversation(username, group_hash):
                 FROM groupMessages 
                 WHERE groupkey_hash='{group_hash}'
                 ORDER BY sender_created_at ASC""".format(group_hash=group_hash, username=username)
-    
+    print(query)
     c.execute(query)
     result = c.fetchall()
     if len(result) == 0:
@@ -197,7 +220,7 @@ def addReceivedMessage(target_username, target_pubkey, encrypted_message, timest
 
 def addGroupMessage(groupkey_hash, send_user, encrypted_message, timestamp):
     conn, c = loadDatabase()
-    c.execute("INSERT INTO groupMessages VALUES('{hash}','{send}','{encrypted_message}','{timestamp}','received')".format(hash=groupkey_hash, send=send_user, encrypted_message=encrypted_message, timestamp=int(timestamp)))
+    c.execute("INSERT INTO groupMessages VALUES('{hash}','{send}','{encrypted_message}','{timestamp}','received')".format(hash=groupkey_hash, send=send_user, encrypted_message=encrypted_message, timestamp=timestamp))
     closeDatabase(conn)
     
 def addsentMessages(username ,target_username, message, timestamp, group):

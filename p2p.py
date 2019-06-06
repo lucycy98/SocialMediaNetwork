@@ -117,6 +117,7 @@ class p2p():
             print("FAILED TO SEND MESAGE")
     
     def createGroupChatP2p(self, target_usernames):
+        headers = self.createAuthorisedHeader(True)
         print("creating group chats")
         error = 1
         #generating symmetric keys to be stored
@@ -142,9 +143,8 @@ class p2p():
         print(encr)
         
 
-        for user in target_usernames:
-            database.addGroupChatReceived(groupkey_hash_str, user) #change TODO only add if successful.
-            username = user
+        for username in target_usernames:
+            database.addGroupChatReceived(groupkey_hash_str, username) #change TODO only add if successful.
             user = database.getUserData(username)
             user_address = user.get("address", None)
             user_location = user.get("location", None)
@@ -186,10 +186,11 @@ class p2p():
                     error = 0
                 else:
                     print("response not OK")
-            except:
+            except Exception as e:
                 print("FAILED TO SEND!")
+                print(e)
             error = 0 #TODO CHNAGE THIS IS JUST FOR TETSING
-        return error, groupkey_hash
+        return error, groupkey_hash_str
     
     def sendGroupMessage(self, target_group_hash, message):
         headers = self.createAuthorisedHeader(True)
@@ -204,6 +205,7 @@ class p2p():
         print("KEY IS")
         if not key:
             print("ERROR!!!!!!!!!!!!!!!1")
+            print("ERROR IN SENDING MESSAGE")
             return 1
         
         encr_message = helper.encryptStringKey(key, message).hex() #TODO change if hex is appropriate.
@@ -227,8 +229,8 @@ class p2p():
         except Exception as e: 
             print("failed to encrypt sent message.")
             print(e)
+        print("TRYING TO ADD SEND MESSAGE TO DATABASE.....")
         database.addsentMessages(self.username, target_group_hash, self_encrypted_message, ts, "group")
-        print("database")
         print(target_group_hash)
         all_users = database.getAllUsers()
 

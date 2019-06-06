@@ -129,7 +129,28 @@ class MainApp(object):
                 if name is not None:
                     messages = database.getUserConversation(username, name)
                 else:
+                    groupkeys = database.checkGroupKey(username)
+                    print("GETTING GROUP KEYS!!!!!!!!!!!!")
+                    for groupkey in groupkeys:
+                        print(groupkey)
+                        encr_groupkey = groupkey.get("groupkey_encr", None)
+                        print(encr_groupkey)
+                        try:
+                            decrypted_groupkey = helper.decryptMessage(encr_groupkey, logserv.signing_key)
+                            print(decrypted_groupkey)
+                            print("decrypted group key is")
+                            print(username)
+                            groupkey_str = decrypted_groupkey.hex()
+                            #decrypted_groupkey = helper.decryptStringKey(target_pubkey, encr_groupkey)
+                        except Exception as e:
+                            print("ERROR in decrypting group key.")
+                            print(e)
+                        else:
+                            helper.addToPrivateData(logserv, "prikeys", groupkey_str) #not sure if you can add bytes here....TODO
+                            database.deleteGroupKey(username, encr_groupkey)
+
                     messages = database.getGroupConversation(username, groupname)
+                    
                     isGroup = True
                     print("group messages")
                     print(messages)
@@ -148,9 +169,15 @@ class MainApp(object):
                     decr_message = None
 
                     if status == "received" and isGroup:
-                     
-                        key = helper.getEncryptionKey(logserv, groupname)
-                        decr_message = helper.decryptStringKey(key, encr_bytes)
+
+                        target_group_bytes = bytes(groupname, encoding='utf-8')
+                        key = helper.getEncryptionKey(logserv, target_group_bytes)
+                        print("KEY IS")
+                        print(key)
+                        print(target_group_bytes)
+                        #dex hexing message 
+                        bytes_message = bytes.fromhex(encr_message)
+                        decr_message = helper.decryptStringKey(key, bytes_message)
                        
                     else:
                         decr_message = helper.decryptMessage(encr_message, signing_key)
@@ -345,7 +372,9 @@ class MainApp(object):
             error, groupkey_hash = p2p.createGroupChatP2p(names)
             if error == 0: #invite sent to at least one person for every req
                 print("OK")            
-                raise cherrypy.HTTPRedirect('/message?groupname={a}'.format(a= groupkey_hash)) 
+        #raise cherrypy.HTTPRedirect('/message?groupname={a}'.format(a= groupkey_hash)) 
+        raise cherrypy.HTTPRedirect('/index') 
+
     
     @cherrypy.expose
     def reportUser(self, status=None):

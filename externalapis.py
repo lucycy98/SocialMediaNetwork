@@ -139,6 +139,8 @@ class MainApp(object):
         sender_created_at = payload.get("sender_created_at", None)
         signature = payload.get("signature", None)
         target_username = payload.get("target_username", None)
+        print("TARGET USERNAME IS")
+        print(target_username)
 
         if not loginserver_record or not target_pubkey or not groupkey_hash or not encr_groupkey or not signature or not sender_created_at:
             error = "missing parameters in request"
@@ -151,10 +153,16 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
-                if target_username == cherrypy.session["username"]:
-                    logserv = cherrypy.session["logserv"]
+                database.addGroupKey(target_username, encr_groupkey) #adding the group key.
+                '''
+                username = cherrypy.session.get("username", None)
+                if target_username == username:
+                    logserv = cherrypy.session.get("logserv", None)
+                    print(logserv)
                     try:
                         decrypted_groupkey = helper.decryptMessage(encr_groupkey, logserv.signing_key)
+                        print(decrypted_groupkey)
+                        print("decrypted group key is")
                         groupkey_str = decrypted_groupkey.hex()
                         #decrypted_groupkey = helper.decryptStringKey(target_pubkey, encr_groupkey)
                     except Exception as e:
@@ -163,6 +171,7 @@ class MainApp(object):
                         helper.addToPrivateData(logserv, "prikeys", groupkey_str) #not sure if you can add bytes here....TODO
                 database.addGroupChatReceived(groupkey_hash, target_username)
                 #TODO update keys. 
+                '''
         response = helper.generateResponseJSON(error)
         return response
 
@@ -192,6 +201,8 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
+                print("group message is")
+                print(group_message)
                 database.addGroupMessage(groupkey_hash, username, group_message, sender_created_at)
         response = helper.generateResponseJSON(error)
         return response

@@ -154,6 +154,8 @@ class MainApp(object):
                 print(e)
             else:
                 database.addGroupKey(target_username, encr_groupkey) #adding the group key.
+                database.addGroupChatReceived(groupkey_hash, target_username)
+
                 '''
                 username = cherrypy.session.get("username", None)
                 if target_username == username:
@@ -169,7 +171,6 @@ class MainApp(object):
                         print(e)
                     else:
                         helper.addToPrivateData(logserv, "prikeys", groupkey_str) #not sure if you can add bytes here....TODO
-                database.addGroupChatReceived(groupkey_hash, target_username)
                 #TODO update keys. 
                 '''
         response = helper.generateResponseJSON(error)

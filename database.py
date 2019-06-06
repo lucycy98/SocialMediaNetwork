@@ -120,7 +120,7 @@ def getGroupConversation(username, group_hash):
                     UNION ALL
                 SELECT group_message, send_user, sender_created_at, received 
                 FROM groupMessages 
-                WHERE groupkey_hash='{group_hash}'
+                WHERE groupkey_hash='{group_hash}' AND send_user<>'{username}'
                 ORDER BY sender_created_at ASC""".format(group_hash=group_hash, username=username)
     print(query)
     c.execute(query)
@@ -239,7 +239,9 @@ def updateUsersInfo(username, address=None, location=None, pubkey=None, lastRepo
     c.execute("SELECT * FROM users WHERE username='{username}'".format(username = username))
     result = c.fetchall()
     if len(result) == 0:
-        c.execute("INSERT INTO users VALUES('{username}','{address}','{location}','{pubkey}','{lastReport}','{status}')".format(username = username, address = address, location = location, pubkey = pubkey, lastReport = lastReport, status = status))
+        q = "INSERT INTO users VALUES('{username}','{address}','{location}','{pubkey}','{lastReport}','{status}')".format(username = username, address = address, location = location, pubkey = pubkey, lastReport = lastReport, status = status)
+        print(q)
+        c.execute(q)
     else:
         c.execute("UPDATE users SET address='{address}', location='{location}',pubkey='{pubkey}',lastReport='{lastReport}',status='{status}' WHERE username='{username}'".format(address = address, location = location, pubkey = pubkey, lastReport = lastReport, status = status, username = username))
     closeDatabase(conn)

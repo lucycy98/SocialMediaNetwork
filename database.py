@@ -197,7 +197,7 @@ def addReceivedMessage(target_username, target_pubkey, encrypted_message, timest
 
 def addGroupMessage(groupkey_hash, send_user, encrypted_message, timestamp):
     conn, c = loadDatabase()
-    c.execute("INSERT INTO groupMessages VALUES('{hash}','{send}','{encrypted_message}','{timestamp}','received')".format(hash=groupkey_hash, send=send_user, encrypted_message=encrypted_message, timestamp=timestamp))
+    c.execute("INSERT INTO groupMessages VALUES('{hash}','{send}','{encrypted_message}','{timestamp}','received')".format(hash=groupkey_hash, send=send_user, encrypted_message=encrypted_message, timestamp=int(timestamp)))
     closeDatabase(conn)
     
 def addsentMessages(username ,target_username, message, timestamp, group):

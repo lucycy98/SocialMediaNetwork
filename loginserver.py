@@ -104,8 +104,11 @@ class loginserver():
         private_data = {}
         private_data = self.getPrivateData()
         print("private data is")
-        print(private_data)            
-        prikeys = private_data.get("prikeys", None)
+        print(private_data)   
+        if private_data == 1:
+            return 1 
+        else:        
+            prikeys = private_data.get("prikeys", None)
         
         if prikeys is None:
             print("HEX KEY IS NONE")
@@ -310,7 +313,8 @@ class loginserver():
                 private_data_str = helper.decryptStringKey(key, private_data_bytes)
             except nacl.exceptions.CryptoError as e: #TODO change to specific exception
                 print(e)
-                return {}
+                error = 1
+                return error
             else: 
                 private_data = json.loads(private_data_str)
         return private_data

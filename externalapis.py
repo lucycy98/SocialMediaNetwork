@@ -151,15 +151,16 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
-
-                if target_username == cherrypy.session("username"):
+                if target_username == cherrypy.session["username"]:
+                    logserv = cherrypy.session["logserv"]
                     try:
-                        decrypted_groupkey = helper.decryptStringKey(target_pubkey, encr_groupkey)
+                        decrypted_groupkey = helper.decryptMessage(encr_groupkey, logserv.signing_key)
+                        groupkey_str = decrypted_groupkey.hex()
+                        #decrypted_groupkey = helper.decryptStringKey(target_pubkey, encr_groupkey)
                     except Exception as e:
                         print(e)
                     else:
-                        logserv = cherrypy.session("logserv")
-                        helper.addToPrivateData(logserv, "prikeys", decrypted_groupkey) #not sure if you can add bytes here....TODO
+                        helper.addToPrivateData(logserv, "prikeys", groupkey_str) #not sure if you can add bytes here....TODO
                 database.addGroupChatReceived(groupkey_hash, target_username)
                 #TODO update keys. 
         response = helper.generateResponseJSON(error)

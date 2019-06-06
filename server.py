@@ -205,6 +205,7 @@ class MainApp(object):
         database.checkUsernamePassword(username, password)
         success = logserv.getSigningKey()
         if success > 0:
+            cherrypy.session.expire()
             print("testing error") #todo: deal with errors
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
         logserv.reportUser("online")

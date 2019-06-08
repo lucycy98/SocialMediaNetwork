@@ -14,6 +14,7 @@ import database
 import helper
 import re
 
+
 class p2p():
     def __init__(self, username, password, signing_key, api, logserv):
         self.logserv = logserv
@@ -21,6 +22,46 @@ class p2p():
         self.password = password
         self.signing_key = signing_key
         self.apikey = api
+    
+    def pingCheckUsers(self):
+        headers = self.createAuthorisedHeader(False)
+        ts = str(time.time())
+
+        all_users = database.getAllUsers()
+
+        payload = {
+            "my_time": ts,
+            "connection_address": self.logserv.connection_address,
+            "connection_location": self.logserv.connection_location
+        }
+
+        for user in all_users:
+            username = user.get("username", None)
+            user_address = user.get("address", None)
+            user_status = user.get("status", None)
+            if user_address is None or user_status != "online":
+                continue
+            url = "http://" + user_address + "/api/ping_check"
+            print(url)
+
+            try:
+                JSON_object = helper.postJson(payload, headers, url)
+                print(JSON_object)
+                response = JSON_object.get("response", None)
+                if response == "ok":
+                    print("broadcast successfully sent")
+                else:
+                    print("ping check not ok")
+                    database.makeUserOffline(username)
+            except:
+                print("cannot ping this user!!!!")
+                database.makeUserOffline(username)
+    
+
+
+
+        
+
 
     def sendBroadcastMessage(self, message):
         headers = self.createAuthorisedHeader(True)

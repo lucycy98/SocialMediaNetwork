@@ -76,7 +76,6 @@ class MainApp(object):
     @cherrypy.tools.json_out()
     def ping_check(self):
         response = {}
-        username = cherrypy.session.get("username")
         error = "ok"
         print("recieving broadcast message!")
         payload = cherrypy.request.json

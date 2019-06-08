@@ -427,10 +427,15 @@ class MainApp(object):
         if not status:
             status = "online"
         logserv = cherrypy.session.get("logserv", None)
+        p2p = cherrypy.session.get("p2p", None)
+
         if logserv is None:
             pass
         else:
             logserv.reportUser(status)
+            logserv.getUsers()
+        if p2p:
+            p2p.pingCheckUsers()
         
     @cherrypy.expose
     def signout(self):

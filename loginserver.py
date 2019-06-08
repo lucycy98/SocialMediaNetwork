@@ -13,6 +13,7 @@ import database
 import os
 import helper
 import socket
+import main
 
 class loginserver():
     def __init__(self, username, password, password2):
@@ -57,11 +58,13 @@ class loginserver():
         elif '172.23' in localip or '172.24' in localip:
             self.connection_address = localip
             self.connection_location = '1'
-            self.connection_address += ":5050"
             
         else:
             self.connection_address = publicip
             self.connection_location = '2'
+        #adding port 
+        self.connection_address += ":" + str(main.LISTEN_PORT)
+
     
         print("MY IP IS")
         print(self.connection_address)

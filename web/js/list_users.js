@@ -13,14 +13,6 @@ function refreshInfo() {
   refreshInfo()
   var interval2 = setInterval(refreshInfo, 2000);
 
-
-function report() {
-	var xhttp = new XMLHttpRequest();
-	xhttp.open("GET", "reportUser?status=online", true);
-	xhttp.timeout = 8000;
-	xhttp.send(null); 
-}
-
 function getParam(){
 	var url = new URL(window.location.href);
 	var c = url.searchParams.get("name");
@@ -87,9 +79,5 @@ function formatDate(date) {
 	return date.getDate() +'/'+ (date.getMonth()+1) + '/' + date.getFullYear() +"  " + strTime;
   }
 
-//loadOnline()
-report()
-getParam()
 
-//var myVar2 = setInterval(loadOnline, 11600);
-var myvar = setInterval(report, 11000);
+getParam()

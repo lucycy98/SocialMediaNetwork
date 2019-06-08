@@ -456,10 +456,11 @@ class loginserver():
 
 class MyThread(threading.Thread):
 
-    def __init__(self, logserv):
+    def __init__(self, logserv, peer):
         threading.Thread.__init__(self)
         self._stop = threading.Event()
         self.logserv = logserv
+        self.p2p = peer
 
     def stop(self):
         print("stopping thread")
@@ -473,5 +474,7 @@ class MyThread(threading.Thread):
         while not self.stopped():
             try:
                 self.logserv.reportUser("online")
+                self.logserv.getUsers()
+                self.p2p.pingCheckUsers()
             finally:
-                time.sleep(1)
+                time.sleep(90)

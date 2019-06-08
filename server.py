@@ -134,7 +134,6 @@ class MainApp(object):
             messages = []
             data = {}
             template = j2_env.get_template('web/message.html')
-            logserv.getUsers()
             users = database.getAllUsers()
             groupchats = database.getAllGroupChats(cherrypy.session["username"])
             if not users:
@@ -245,7 +244,7 @@ class MainApp(object):
         cherrypy.session['password'] = password
         cherrypy.session["logserv"] = logserv
         cherrypy.session["p2p"] = peer
-        threadReport = loginserver.MyThread(logserv)
+        threadReport = loginserver.MyThread(logserv, peer)
         cherrypy.session["thread"] = threadReport
         threadReport.start()
         raise cherrypy.HTTPRedirect('/index')
@@ -270,9 +269,6 @@ class MainApp(object):
         users = database.getAllUsers()
         Page = ""
         data = {}
-        if logserv is not None:
-            logserv.getUsers()
-
         for user in users:
             username = user.get("username", None)
             status = user.get("status", None)
@@ -422,24 +418,7 @@ class MainApp(object):
             if error == 0: #invite sent to at least one person for every req
                 print("OK")            
         #raise cherrypy.HTTPRedirect('/message?groupname={a}'.format(a= groupkey_hash)) 
-        raise cherrypy.HTTPRedirect('/index') 
-
-    
-    @cherrypy.expose
-    def reportUser(self, status=None):
-    
-        if not status:
-            status = "online"
-        logserv = cherrypy.session.get("logserv", None)
-        p2p = cherrypy.session.get("p2p", None)
-
-        if logserv is None:
-            pass
-        else:
-            logserv.reportUser(status)
-            logserv.getUsers()
-        if p2p:
-            p2p.pingCheckUsers()
+        raise cherrypy.HTTPRedirect('/index')
         
     @cherrypy.expose
     def signout(self):
@@ -452,6 +431,5 @@ class MainApp(object):
             if th.IsAlive:
                 th.stop()
             logserv.reportUser("offline")
-            logserv.thread_stop()
             cherrypy.lib.sessions.expire()
         raise cherrypy.HTTPRedirect('/')

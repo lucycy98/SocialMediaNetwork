@@ -12,18 +12,42 @@
     <div class="navbar">
         <a href="index">Home</a>
         <a href="profile">Profile</a>
-        <a href="message">Messages</a>
+        <a href="message">Messages</a> 
+        
+        
+        <div class="dropdown-new"> 
+        <input type="text" placeholder="Search.." id="myInput" onfocus='showtable()' onfocusout='showtable()' onkeyup="filterFunction()">  
+        <div id="dropdown-id" class="dropdown-content-search">
+            <a href="#about">About</a>
+            <a href="#base">Base</a>
+            <a href="#blog">Blog</a>
+         </div>
+        </div>
+    
+        
+        
+
         <div class="dropdown">
             <button class="dropbtn">Account
                 <i class="fa fa-caret-down"></i>
             </button>
             <div class="dropdown-content">
                 <a href="settings">Settings</a>
+
+                <button class="dropdown-btn">Set status</button>
+                <div class="dropdown-container">
+                    <a href="index?status=online">Online (default)</a>
+                    <a href="index?status=busy">Busy</a>
+                    <a href="index?status=away">Away</a>
+                </div>
                 <a href="signout">Logout</a>
+                
             </div>
         </div>
     </div>
     {% block body %}{% endblock %}
+    <script src="js/base.js"></script>
+
 </body>
 
 </html>

@@ -37,14 +37,21 @@ class MainApp(object):
         return output
 
     @cherrypy.expose
-    def index(self, filterVal=None):
+    def index(self, filterVal=None, status=None):
 
         logserv = cherrypy.session.get("logserv", None)
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
         else:
             username = cherrypy.session["username"]
-            
+
+            if status == 'online':
+                logserv.status='online'
+            elif status == 'busy':
+                logserv.status='busy'
+            elif status == 'away':
+                logserv.status='away'
+            #dont set anything else.
 
             if filterVal == "favourite":
                 all_broadcasts = database.getFavBroadcasts(username)
@@ -238,7 +245,6 @@ class MainApp(object):
             cherrypy.session.expire()
             print("testing error") #todo: deal with errors
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
-        logserv.reportUser("online")
         peer = p2p.p2p(username, password, logserv.signing_key, logserv.apikey, logserv)
         cherrypy.session['username'] = username
         cherrypy.session['password'] = password

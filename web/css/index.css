@@ -18,17 +18,16 @@ h3{
   line-height: 0.5em;
 }
 
-input[type=text] {
+.cont input[type=text] {
   border-radius: 20px;
   width: 100%;
   height: 100px;
   outline: none;
   border: 1px solid #cacaca;
   background-color: #f9f9f9;
-
 }
 
-input[type=submit] {
+.cont input[type=submit] {
   border-radius: 10px;
   float: right;
   padding: 0.8em 2em;

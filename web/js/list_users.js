@@ -6,11 +6,12 @@ function refreshInfo() {
 	  })
 	  .done(function() {
 		$("#all_users").load(location.href+" #all_users>*","");
+		$("#pm").load(location.href+" #pm>*","");
 	  });
   }
   //Update list of users every x seconds
   refreshInfo()
-  var interval = setInterval(refreshInfo, 10000);
+  var interval2 = setInterval(refreshInfo, 2000);
 
 
 function report() {

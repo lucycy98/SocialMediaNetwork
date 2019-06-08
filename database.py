@@ -11,12 +11,17 @@ def initialiseTable(c, conn):
     c.execute("CREATE TABLE users (username STRING PRIMARY KEY, address STRING, location STRING, pubkey STRING, lastReport STRING, status STRING)")
     c.execute("CREATE TABLE userhashes (username STRING NOT NULL, hash STRING, loginrecord STRING)")  
     
-    c.execute("CREATE TABLE broadcasts (loginserver_record STRING NOT NULL, message STRING, sender_created_at INT(11), signature STRING, username STRING)") 
-    c.execute("CREATE TABLE receivedMessages (target_username STRING NOT NULL, target_pubkey STRING NOT NULL, encrypted_message STRING, sender_created_at INT(11), signature STRING, sender_username STRING, sent STRING, loginserver_record STRING)") 
+    c.execute("CREATE TABLE broadcasts (loginserver_record STRING NOT NULL, message STRING, sender_created_at INT(11), signature STRING PRIMARY KEY, username STRING, meta STRING)") 
+    c.execute("CREATE TABLE receivedMessages (target_username STRING NOT NULL, target_pubkey STRING NOT NULL, encrypted_message STRING, sender_created_at INT(11), signature STRING, sender_username STRING, sent STRING, loginserver_record STRING, meta STRING)") 
     c.execute("CREATE TABLE groups (groupkey_hash STRING NOT NULL, username STRING)")
-    c.execute("CREATE TABLE groupMessages (groupkey_hash STRING, send_user STRING, group_message STRING, sender_created_at INT(11), received STRING)")
+    c.execute("CREATE TABLE groupMessages (groupkey_hash STRING, send_user STRING, group_message STRING, sender_created_at INT(11), received STRING, meta STRING)")
     c.execute("CREATE TABLE sentMessages (username STRING NOT NULL, target_username STRING, message STRING, sender_created_at INT(11), sent STRING, isGroup STRING)")
     c.execute("CREATE TABLE groupkeys (username STRING NOT NULL, groupkey_encr STRING)")
+
+    c.execute("CREATE TABLE blockedUsers (username STRING, blockedUser STRING)")
+    c.execute("CREATE TABLE blockedWords (username STRING, word STRING)")
+    c.execute("CREATE TABLE favBroadcasts (username STRING, signature STRING, FOREIGN KEY(signature) REFERENCES broadcasts(signature) )")
+    c.execute("CREATE TABLE blockedBroadcasts (username STRING, signature STRING, FOREIGN KEY(signature) REFERENCES broadcasts(signature) )")
 
     conn.commit()
 
@@ -48,6 +53,65 @@ def checkUsernamePassword(username, password):
 
     return 0
 
+def getNumberLikesBroadcasts(signature):
+    conn, c = loadDatabase()
+    c.execute("SELECT count (DISTINCT username) FROM favBroadcasts WHERE signature='{a}'".format(a = signature))
+    result = c.fetchall()
+    closeDatabase(conn)
+    return result[0][0]
+
+def getBlockedWords(username):
+    conn, c = loadDatabase()
+    c.execute("SELECT * FROM blockedWords WHERE username='{a}'".format(a = username))
+    result = c.fetchall()
+    data = resultToJSON(result, c)
+    closeDatabase(conn)
+    return data
+
+def addBlockedWord(username, word):
+    conn, c = loadDatabase()
+    c.execute("INSERT INTO blockedWords VALUES('{a}', '{b}')".format(a=username, b=word))
+    closeDatabase(conn)
+
+def getBlockedUser(username):
+    conn, c = loadDatabase()
+    c.execute("SELECT * FROM blockedUsers WHERE username='{a}'".format(a = username))
+    result = c.fetchall()
+    data = resultToJSON(result, c)
+    closeDatabase(conn)
+    return data
+
+def addBlockedUser(username, blockUser):
+    conn, c = loadDatabase()
+    c.execute("INSERT INTO blockedUsers VALUES('{a}', '{b}')".format(a=username, b=blockUser))
+    closeDatabase(conn)
+
+def getBlockedBroadcasts(username):
+    conn, c = loadDatabase()
+    c.execute("SELECT * FROM blockedBroadcasts, broadcasts WHERE blockedBroadcasts.username='{a}' AND blockedBroadcasts.signature = broadcasts.signature ORDER BY sender_created_at DESC".format(a = username))
+    result = c.fetchall()
+    data = resultToJSON(result, c)
+    closeDatabase(conn)
+    return data
+
+def addBlockedBroadcast(username, signature):
+    conn, c = loadDatabase()
+    c.execute("INSERT INTO blockedBroadcasts VALUES('{a}', '{b}')".format(a=username, b=signature))
+    closeDatabase(conn)
+
+def getFavBroadcasts(username):
+    conn, c = loadDatabase()
+    c.execute("SELECT * FROM favBroadcasts, broadcasts WHERE favBroadcasts.username='{a}' AND favBroadcasts.signature = broadcasts.signature ORDER BY sender_created_at DESC".format(a = username))
+    result = c.fetchall()
+    data = resultToJSON(result, c)
+    closeDatabase(conn)
+    return data
+
+def addFavBroadcast(username, signature):
+    conn, c = loadDatabase()
+    c.execute("INSERT INTO favBroadcasts VALUES('{a}', '{b}')".format(a=username, b=signature))
+    closeDatabase(conn)
+
 def addGroupKey(username, key_str):
     conn, c = loadDatabase()
     c.execute("INSERT INTO groupkeys VALUES('{a}', '{b}')".format(a=username, b=key_str))
@@ -68,7 +132,6 @@ def deleteGroupKey(username, groupkey):
     conn, c = loadDatabase()
     c.execute("DELETE FROM groupkeys WHERE username='{a}' AND groupkey_encr='{b}'".format(a=username, b=groupkey))
     closeDatabase(conn)
-
 
 def getAllGroupChats(username):
     conn, c = loadDatabase()
@@ -99,7 +162,7 @@ def getUserConversation(username, otherUsername):
                     UNION ALL
                 SELECT encrypted_message, sender_created_at, sent 
                 FROM receivedMessages 
-                WHERE target_username='{username}' AND sender_username='{target_username}'
+                WHERE target_username='{username}' AND sender_username='{target_username}' AND meta='false'
                 ORDER BY sender_created_at ASC""".format(target_username=otherUsername, username=username)
     
     c.execute(query)
@@ -120,25 +183,10 @@ def getGroupConversation(username, group_hash):
                     UNION ALL
                 SELECT group_message, send_user, sender_created_at, received 
                 FROM groupMessages 
-                WHERE groupkey_hash='{group_hash}' AND send_user<>'{username}'
+                WHERE groupkey_hash='{group_hash}' AND send_user<>'{username}' AND meta='false'
                 ORDER BY sender_created_at ASC""".format(group_hash=group_hash, username=username)
     print(query)
     c.execute(query)
-    result = c.fetchall()
-    if len(result) == 0:
-        closeDatabase(conn)
-        return None
-    data = resultToJSON(result, c)
-    closeDatabase(conn)
-    return data
-
-    
-def getAllSentMessages(username, target_username, since=None):
-    conn, c = loadDatabase()
-    if not since: 
-        c.execute("SELECT message, sender_created_at FROM sentMessages WHERE username = {a} AND target_username = {target_username} ORDER BY sender_created_at DESC".format(target_username=target_username, a=username))
-    else:
-        c.execute("SELECT sender_created_at FROM broadcasts WHERE username = {a} AND target_username = {target_username} AND sender_created_at > {since} ORDER BY sender_created_at DESC".format(since=since, target_username=target_username, a=username))
     result = c.fetchall()
     if len(result) == 0:
         closeDatabase(conn)
@@ -154,7 +202,7 @@ def getAllBroadcasts(since=None, checkMessages=None):
         since = 0
 
     if not checkMessages:
-        c.execute("SELECT * FROM broadcasts WHERE sender_created_at > {since}".format(since=since))
+        c.execute("SELECT * FROM broadcasts WHERE sender_created_at > {since} AND meta='false'".format(since=since))
     else:
         c.execute("SELECT loginserver_record, message, sender_created_at, signature FROM broadcasts WHERE sender_created_at > {since}".format(since=since))
 
@@ -171,7 +219,7 @@ def getAllBroadcasts(since=None, checkMessages=None):
 def getAllBroadcastsUser(username):
     #printDatabase()
     conn, c = loadDatabase()
-    c.execute("SELECT * FROM broadcasts WHERE username='{a}'".format(a=username))
+    c.execute("SELECT * FROM broadcasts WHERE username='{a}' AND meta='false'".format(a=username))
     result = c.fetchall()
     if len(result) == 0:
         closeDatabase(conn)
@@ -186,7 +234,7 @@ def getAllMessages(since=None, checkMessages=None):
     if not since: 
         since = 0
     if not checkMessages:
-        c.execute("SELECT * FROM receivedMessages WHERE sender_created_at > {since}".format(since=since))
+        c.execute("SELECT * FROM receivedMessages WHERE sender_created_at > {since} AND meta='false'".format(since=since))
     else:
         c.execute("SELECT * FROM receivedMessages WHERE sender_created_at > {since}".format(since=since))
     result = c.fetchall()
@@ -197,30 +245,14 @@ def getAllMessages(since=None, checkMessages=None):
     closeDatabase(conn)
     return data
 
-#get all messages since....for internal use.
-def getSpecificMessages(username, sender_username, since=None):
+def addReceivedMessage(target_username, target_pubkey, encrypted_message, timestamp , signature, their_username, loginrecord, meta):
     conn, c = loadDatabase()
-    if not since: 
-        c.execute("SELECT encrypted_message, sender_created_at FROM receivedMessages WHERE target_username = '{a}' AND sender_username= '{b}' ORDER BY sender_created_at DESC".format(a=username, b=sender_username))
-    else:
-        c.execute("SELECT encrypted_message, sender_created_at FROM receivedMessages WHERE sender_created_at > {since} AND target_username = '{a}' AND sender_username= '{b}' ORDER BY sender_created_at DESC".format(since=since, a = username, b=sender_username))
-    result = c.fetchall()
-    if len(result) == 0:
-        closeDatabase(conn)
-        return None
-    data = resultToJSON(result, c)
-    closeDatabase(conn)
-    return data
-
-
-def addReceivedMessage(target_username, target_pubkey, encrypted_message, timestamp , signature, their_username, loginrecord):
-    conn, c = loadDatabase()
-    c.execute("INSERT INTO receivedMessages VALUES('{target_username}','{target_pubkey}','{encrypted_message}','{timestamp}','{signature}', '{a}', 'received', '{login}')".format(a=their_username, target_username=target_username, target_pubkey=target_pubkey, encrypted_message=encrypted_message, timestamp=timestamp, signature=signature, login=loginrecord))
+    c.execute("INSERT INTO receivedMessages VALUES('{target_username}','{target_pubkey}','{encrypted_message}','{timestamp}','{signature}', '{a}', 'received', '{login}', '{meta}')".format(a=their_username, target_username=target_username, target_pubkey=target_pubkey, encrypted_message=encrypted_message, timestamp=timestamp, signature=signature, login=loginrecord, meta=meta))
     closeDatabase(conn)
 
-def addGroupMessage(groupkey_hash, send_user, encrypted_message, timestamp):
+def addGroupMessage(groupkey_hash, send_user, encrypted_message, timestamp, meta):
     conn, c = loadDatabase()
-    c.execute("INSERT INTO groupMessages VALUES('{hash}','{send}','{encrypted_message}','{timestamp}','received')".format(hash=groupkey_hash, send=send_user, encrypted_message=encrypted_message, timestamp=timestamp))
+    c.execute("INSERT INTO groupMessages VALUES('{hash}','{send}','{encrypted_message}','{timestamp}','received', '{meta}')".format(hash=groupkey_hash, send=send_user, encrypted_message=encrypted_message, timestamp=timestamp, meta=meta))
     closeDatabase(conn)
     
 def addsentMessages(username ,target_username, message, timestamp, group):
@@ -228,11 +260,10 @@ def addsentMessages(username ,target_username, message, timestamp, group):
     c.execute("INSERT INTO sentMessages VALUES('{username}','{target_username}','{message}','{timestamp}', 'sent', '{group}')".format(username=username, target_username=target_username, message=message, timestamp=timestamp, group=group))
     closeDatabase(conn)
 
-def addBroadCast(loginrecord, message, timestamp, signature, username):
+def addBroadCast(loginrecord, message, timestamp, signature, username, meta):
     conn, c = loadDatabase()
-    c.execute("INSERT INTO broadcasts VALUES('{loginrecord}','{message}','{timestamp}', '{signature}', '{username}')".format(loginrecord = loginrecord, username=username, message=message, timestamp=timestamp, signature=signature))
+    c.execute("INSERT INTO broadcasts VALUES('{loginrecord}','{message}','{timestamp}', '{signature}', '{username}', '{meta}')".format(loginrecord = loginrecord, username=username, message=message, timestamp=timestamp, signature=signature, meta=meta))
     closeDatabase(conn)
-    #printDatabase()
 
 def updateUsersInfo(username, address=None, location=None, pubkey=None, lastReport=None, status=None):
     conn, c = loadDatabase()
@@ -335,7 +366,6 @@ def getAllUsersStatus(status):
 
 def getAllUsersCondition(condition):
     conn, c = loadDatabase()
-
     query = "SELECT * FROM users {condition}".format(condition=condition)
     print(query)
     c.execute(query)

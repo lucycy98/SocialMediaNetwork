@@ -57,7 +57,7 @@ class loginserver():
         elif '172.23' in localip or '172.24' in localip:
             self.connection_address = localip
             self.connection_location = '1'
-            self.connection_address += ":4000"
+            self.connection_address += ":5050"
             
         else:
             self.connection_address = publicip

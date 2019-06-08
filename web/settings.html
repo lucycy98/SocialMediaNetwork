@@ -12,6 +12,12 @@
     <a href='/updateLoginServerRecord'>Update login server record</a> <br />
     <a href='/sendBroadcastMessage'>Message</a> <br />
     <a href='/testRecieveMessage?message=hello from private'>SEND LUCY MESSAGE</a> <br/>
+
+    <h3>Blocked users</h3>
+    {%for user in blocked_users %}
+        {{ user["blockedUser"] }}
+    {% endfor %}
+
 </div>
 
 {% endblock %}

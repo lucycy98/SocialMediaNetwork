@@ -6,18 +6,16 @@ import base64
 from nacl import pwhash, secret, utils
 import nacl.hash
 import helper
+import re
 
-signing_key = nacl.signing.SigningKey.generate() #PRIVATE KEY!!!
-pubkey = signing_key.verify_key
-pubkey_hex = pubkey.encode(encoder=nacl.encoding.HexEncoder)
-message = "hi"
-message_hm = helper.encryptMessage(message, pubkey_hex)
+text = "!Meta:favourite_broadcast:"
+x =re.search("^!Meta:(\w+):(\w+)", text)
+print(x)
+if x:
+        print(x.group(1))
+        print(x.group(2))
 
-decrypted = helper.decryptMessage(message_hm, signing_key)
-print(decrypted)
-
-
-
+ 
 
 def idk():
         username = "lche982"

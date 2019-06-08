@@ -36,14 +36,22 @@ class MainApp(object):
         return output
 
     @cherrypy.expose
-    def index(self):
+    def index(self, filterVal=None):
 
         logserv = cherrypy.session.get("logserv", None)
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
         else:
+            username = cherrypy.session["username"]
+            
 
-            all_broadcasts = database.getAllBroadcasts()
+            if filterVal == "favourite":
+                all_broadcasts = database.getFavBroadcasts(username)
+            elif filterVal == "blocked":
+                all_broadcasts = database.getFavBroadcasts(username)
+            else:
+                all_broadcasts = database.getAllBroadcasts()
+                filterVal = "recent"
             if not all_broadcasts:
                 all_broadcasts = []
             data = []
@@ -53,33 +61,46 @@ class MainApp(object):
                 tup["username"] = broadcast.get("username")
                 time = broadcast.get("sender_created_at")
                 tup["time"] = helper.formatTime(time)
+                tup["signature"] = broadcast.get("signature")
+                tup["likes"] = database.getNumberLikesBroadcasts(broadcast.get("signature", None))
                 data.append(tup)
             template = j2_env.get_template('web/index.html')
-            output = template.render(broadcasts=data)
+            output = template.render(broadcasts=data, filter=filterVal)
         return output
     
     @cherrypy.expose
-    def profile(self, name=None):
+    def profile(self, name=None, filterVal=None):
         logserv = cherrypy.session.get("logserv", None)
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
         else:
             template = j2_env.get_template('web/profile.html')
             username = cherrypy.session.get("username")
+
             if name == username or name is None:
                 broadcasts = database.getAllBroadcastsUser(username)
                 profile = database.getUserData(username)
                 isOwn = True
             else:
-                broadcasts = database.getAllBroadcastsUser(name)
                 profile = database.getUserData(name)
+                if filterVal == "favourite":
+                    broadcasts = database.getFavBroadcasts(name)
+                elif filterVal == "blocked":
+                    broadcasts = database.getFavBroadcasts(name)
+                else:
+                    broadcasts = database.getAllBroadcastsUser(name)
+                    filterVal = "recent"
+
+                
                 isOwn = False
           
-            if broadcasts is None:
-                broadcasts = [] 
+            if not broadcasts:
+                broadcasts = []
+
             for broadcast in broadcasts:
                 time = broadcast.get("sender_created_at")
                 broadcast["time"] = helper.formatTime(time)
+                broadcast["likes"] = database.getNumberLikesBroadcasts(broadcast.get("signature", None))
             if profile is None:
                 profile = database.getUserData(username)      
                 isOwn = True        
@@ -94,7 +115,10 @@ class MainApp(object):
             raise cherrypy.HTTPRedirect('/login')
         else:
             template = j2_env.get_template('web/settings.html')
-            output = template.render()
+            blockedusers = database.getBlockedUser(cherrypy.session["username"])
+            print("blocked users")
+            print(blockedusers)
+            output = template.render(blocked_users=blockedusers)
         
         return output
 
@@ -130,18 +154,11 @@ class MainApp(object):
                     messages = database.getUserConversation(username, name)
                 else:
                     groupkeys = database.checkGroupKey(username)
-                    print("GETTING GROUP KEYS!!!!!!!!!!!!")
                     for groupkey in groupkeys:
-                        print(groupkey)
                         encr_groupkey = groupkey.get("groupkey_encr", None)
-                        print(encr_groupkey)
                         try:
                             decrypted_groupkey = helper.decryptMessage(encr_groupkey, logserv.signing_key)
-                            print(decrypted_groupkey)
-                            print("decrypted group key is")
-                            print(username)
                             groupkey_str = decrypted_groupkey.hex()
-                            #decrypted_groupkey = helper.decryptStringKey(target_pubkey, encr_groupkey)
                         except Exception as e:
                             print("ERROR in decrypting group key.")
                             print(e)
@@ -163,6 +180,7 @@ class MainApp(object):
                     time = message["sender_created_at"]
                     time = helper.formatTime(time)
                     message["time"] = time 
+                    
 
                     encr_message = message["message"]
                     status = message["sent"]
@@ -183,23 +201,7 @@ class MainApp(object):
                         decr_message = helper.decryptMessage(encr_message, signing_key)
                         print(decr_message)
                         decr_message = decr_message.decode('utf-8')
-                        
-                    '''
-
-                    if status == "received" and isGroup:
-                        try:
-                            key = helper.getEncryptionKey(logserv, groupname) 
-                            decr_message = helper.decryptStringKey(key, encr_message)
-                        except Exception as e:
-                            print("FAILED decripting group recieved message!@!!!!")
-                            print(e)
-                    else:
-                        try:
-                            decr_message = helper.decryptMessage(encr_message, signing_key)
-                        except Exception as e:
-                            print("FAILED decryption sent message with private key!@!!!!")
-                            print(e)
-                            '''
+                
                     if not decr_message:
                         print("ERROR")
                         decr_message = "ERROR DECRYPTING"
@@ -284,6 +286,48 @@ class MainApp(object):
         else:
             p2p.sendBroadcastMessage(message)
         raise cherrypy.HTTPRedirect('/index')
+    
+    @cherrypy.expose
+    def blockUser(self, username):
+        p2p = cherrypy.session.get("p2p", None)
+        logserv = cherrypy.session.get("logserv", None)
+
+        if not p2p or not username:
+            pass
+        else:
+            database.addBlockedUser(cherrypy.session["username"], username)
+            helper.addToPrivateData(logserv, "blocked_usernames", signature)
+            message = "!Meta:block_username:" + username
+            p2p.sendBroadcastMessage(message)
+            raise cherrypy.HTTPRedirect('/index')
+    
+    @cherrypy.expose
+    def favouriteBroadcast(self, signature):       
+        p2p = cherrypy.session.get("p2p", None)
+        logserv = cherrypy.session.get("logserv", None)
+
+        if not p2p or not signature:
+            pass
+        else:
+            database.addFavBroadcast(cherrypy.session["username"], signature)
+            helper.addToPrivateData(logserv, "favourite_message_signatures", signature)
+            message = "!Meta:favourite_broadcast:" + signature
+            p2p.sendBroadcastMessage(message)
+            raise cherrypy.HTTPRedirect('/index')
+    
+    @cherrypy.expose
+    def blockBroadcast(self, signature):
+        p2p = cherrypy.session.get("p2p", None)
+        logserv = cherrypy.session.get("logserv", None)
+
+        if not p2p or not signature or not logserv:
+            pass
+        else:
+            database.addBlockedBroadcast(cherrypy.session["username"], signature)
+            helper.addToPrivateData(logserv, "blocked_message_signatures", signature)
+            message = "!Meta:block_broadcast:" + signature
+            p2p.sendBroadcastMessage(message)
+            raise cherrypy.HTTPRedirect('/index')
     
     @cherrypy.expose
     def testRecieveMessage(self, message=None):

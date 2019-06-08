@@ -12,6 +12,7 @@ import os.path
 import loginserver
 import helper
 import database
+import re
 
 class MainApp(object):
 
@@ -56,7 +57,16 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
-                database.addBroadCast(loginserver_record, message, sender_created_at, signature, username)
+
+                isMeta = re.search("^!Meta:(\w+):(\w+)", message)
+                if not isMeta:
+                    database.addBroadCast(loginserver_record, message, sender_created_at, signature, username, 'false')
+                else:
+                    database.addBroadCast(loginserver_record, message, sender_created_at, signature, username, 'true')                    
+                    key = isMeta.group(1)
+                    val = isMeta.group(2)
+                    helper.addMetaData(key,val,username)
+                    
         response = helper.generateResponseJSON(error)
         return response
     
@@ -204,7 +214,7 @@ class MainApp(object):
             else:
                 print("group message is")
                 print(group_message)
-                database.addGroupMessage(groupkey_hash, username, group_message, sender_created_at)
+                database.addGroupMessage(groupkey_hash, username, group_message, sender_created_at, target_user)
         response = helper.generateResponseJSON(error)
         return response
     

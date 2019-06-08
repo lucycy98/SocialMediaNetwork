@@ -12,6 +12,7 @@ import time
 import os.path
 import database
 import helper
+import re
 
 class p2p():
     def __init__(self, username, password, signing_key, api, logserv):
@@ -43,7 +44,12 @@ class p2p():
 
         username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
 
-        database.addBroadCast(loginserver_record, message, ts, signature_hex_str, username)
+        isMeta =re.search("^!(M|m)eta:", message)
+        if not isMeta:
+            database.addBroadCast(loginserver_record, message, ts, signature_hex_str, username, 'false')
+        else:
+            database.addBroadCast(loginserver_record, message, ts, signature_hex_str, username, 'true')
+
     
         all_users = database.getAllUsers()
 
@@ -74,8 +80,8 @@ class p2p():
 
         user = database.getUserData(send_user)
         user_address = user.get("address", None)
-        user_location = user.get("location", None)
         user_pubkey = user.get("pubkey", None)
+        user_status = user.get("status", None)
         
         encr_message = helper.encryptMessage(message, user_pubkey)
         loginserver_record = database.getUserInfo(self.username, "loginrecord")        
@@ -83,6 +89,15 @@ class p2p():
         message_bytes = bytes(loginserver_record+user_pubkey+send_user+encr_message+ts, encoding='utf-8')
         signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
         signature_hex_str = signed.signature.decode('utf-8')
+
+        pubkey_hex = self.signing_key.verify_key.encode(encoder=nacl.encoding.HexEncoder)
+        try:
+            self_encrypted_message = helper.encryptMessage(message, pubkey_hex)
+        except Exception as e: 
+            print("failed to encrypt sent message.")
+            print(e)
+        database.addsentMessages(self.username, send_user, self_encrypted_message, ts, "user") #maybe change to encrypted? nah
+
         
         payload = {
             "loginserver_record": loginserver_record,
@@ -92,29 +107,35 @@ class p2p():
             "sender_created_at": ts,
             "signature": signature_hex_str
         }
+
         if user_address is None:
             return 1
-        url = "http://" + user_address + "/api/rx_privatemessage"
-        if send_user == "admin":
-            url = "http://cs302.kiwi.land/api/rx_privatemessage"
-        pubkey_hex = self.signing_key.verify_key.encode(encoder=nacl.encoding.HexEncoder)
-        try:
-            self_encrypted_message = helper.encryptMessage(message, pubkey_hex)
-        except Exception as e: 
-            print("failed to encrypt sent message.")
-            print(e)
-        database.addsentMessages(self.username, send_user, self_encrypted_message, ts, "user") #maybe change to encrypted? nah
 
-        try:
-            JSON_object = helper.postJson(payload, headers, url)
-            response = JSON_object.get("response", None)
-            if response == "ok":
-                print("pm sent successfully sent")
+        all_users = database.getAllUsers()
+        
+        if user_status == "online":
+            user = database.getUserData(send_user)
+            all_users = [user]
 
-            else:
-                print("response not OK")
-        except:
-            print("FAILED TO SEND MESAGE")
+        for user in all_users:
+            user_address = user.get("address", None)
+            user_status = user.get("status", None)
+            if user_address is None or user_status != "online":
+                continue
+            url = "http://" + user_address + "/api/rx_privatemessage"
+            if send_user == "admin":
+                url = "http://cs302.kiwi.land/api/rx_privatemessage"
+            
+            try:
+                JSON_object = helper.postJson(payload, headers, url)
+                response = JSON_object.get("response", None)
+                if response == "ok":
+                    print("pm sent successfully sent")
+                else:
+                    print("response not OK")
+            except Exception as e:
+                print("FAILED TO SEND MESAGE")
+                print(e)
     
     def createGroupChatP2p(self, target_usernames):
         headers = self.createAuthorisedHeader(True)

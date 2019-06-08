@@ -16,6 +16,16 @@ from datetime import datetime
 sends a POST/GET request to the URL endpoint specified.
 returns the JSON response
 ''' 
+def addMetaData(key,value,username):
+    if key == "favourite_broadcast":
+        database.addFavBroadcast(username, value)
+    elif key == "block_broadcast":
+        database.addBlockedBroadcast(username, value)
+    elif key == "block_username":
+        database.addBlockedUser(username, value)
+    elif key == "block_pubkey":
+        #TODO add pubkey ?????????
+    
 def postJson(payload, headers, url):
 
     if payload is not None:

@@ -4,6 +4,7 @@
 {% block head %}
 {{ super() }}
 <link rel='stylesheet' href='css/profile.css' />
+<link rel='stylesheet' href='css/filter.css' />
 {% endblock %}
 
 {% block body %}
@@ -11,11 +12,15 @@
 <div id=profile_cont>
 
     <h1>
-        {{ profile['username'] }}
-        {% if not isOwn %}
-            <img class='icons' src=img/block.svg style="width: 1em; padding-left: 1em;">
-        {% endif %}
+        {{ profile['username'] }} 
+    
     </h1>
+    {% if not isOwn %}
+            <a href="#"><img src="img/block.svg" alt="bottle" onclick="sendBlockData()" style="width: 1.5em; float: right;"></a>
+    {% endif %}
+    
+    
+    
     <table class=profile-table>
         <tr>
             <td class='head'>Connection address</td>
@@ -50,6 +55,7 @@
         </div>
     {% endif %}
 
+
     {% if broadcasts|length == 0 %}
     <div class='block_container'>
             <div class='cont'>
@@ -59,6 +65,20 @@
     
     {% endif %}
 
+    {% if not isOwn %}
+        <hr> 
+
+        <div class="filter">
+            <button onclick="clickFilter()" class="filterbtn">Filter by: {{ filter }}</button>
+            <div id="myFilter" class="filter-content">
+            <a href='?name={{profile["username"]}}'>Their Posts</a>
+            <a href='?name={{profile["username"]}}&filterVal=favourite'>Favourited</a>
+            <a href='?name={{profile["username"]}}&filterVal=blocked'>Blocked</a>
+            </div>
+        </div>
+    {% endif %}
+
+
     {% for broadcast in broadcasts %}
 
         <div class='block_container'>
@@ -66,12 +86,17 @@
                 <h3><a href='?name={{profile["username"]}}'>{{profile["username"]}}</a></h3>
                 <p id=time-stamp>{{broadcast["time"]}}</p>
                 <p>{{broadcast["message"]}}</p> </br>
-                <img class='icons' src=img/like.svg style="width: 1.5em">
+                <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="favouriteBroadcast(this.id)" src=img/like.svg style="width: 1.5em"></a>
+                {{broadcast["likes"]}}
+                <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="blockBroadcast(this.id)" src=img/block.svg style="width: 1.5em"></a>
             </div>
         </div>
     {% endfor %}
 
 
 </div>
+
+<script src="js/profile.js"></script>
+<script src="js/blockfilter.js"></script>
 
 {% endblock %}

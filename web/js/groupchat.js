@@ -31,7 +31,6 @@ $(document).ready(function() {
         $.each($("input[name='username']:checked"), function(){            
             names.push($(this).val());
         });
-        //document.getElementById("hello").innerHTML = names.join(", ");
         makeGroupChat(names)
     });
 });
@@ -47,27 +46,4 @@ function makeGroupChat(names) {
     }
     var data = JSON.stringify({"names": names});
     xhr.send(data);
-}
-
-function loadPeopldsName() {
-	var xhttp = new XMLHttpRequest();
-	xhttp.onreadystatechange = function() {
-        
-	if (this.readyState == 4 && this.status == 200) {
-		var obj = JSON.parse(this.response)
-		Page = ""
-
-		for (var key in obj) { 
-			if (obj.hasOwnProperty(key)) {
-                username = key
-                Page += "<li><label><input type='checkbox' value='" + username +"' name='username'><span></span>" + username + "</label></li>"
-                //Page += "<tr><td class = 'username-td'>" + username + "</td><td class = 'box-td'><input type='checkbox' value='" + username +"' name='username'></td></tr>"
-			}
-		}
-		document.getElementById("group-list").innerHTML = Page;
-		}
-	};
-	xhttp.open("GET", "listActiveUsers", true);
-	xhttp.timeout = 8000;
-	xhttp.send(null); 
 }

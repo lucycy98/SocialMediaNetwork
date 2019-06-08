@@ -4,6 +4,8 @@
 {% block head %}
 {{ super() }}
 <link rel='stylesheet' href='css/index.css' />
+<link rel='stylesheet' href='css/filter.css' />
+
 {% endblock %}
 
 {% block body %}
@@ -22,6 +24,17 @@
         </div>
     </div>
 
+    <hr> 
+
+    <div class="filter">
+        <button onclick="clickFilter()" class="filterbtn">Filter by: {{ filter }}</button>
+        <div id="myFilter" class="filter-content">
+          <a href="?filterVal=recent">Recent</a>
+          <a href="?filterVal=favourite">Favourite</a>
+          <a href="?filterVal=blocked">Blocked</a>
+        </div>
+      </div>
+
     <div id='newposts'></div>
 
     {% if broadcasts|length == 0 %}
@@ -37,14 +50,19 @@
 
         <div class='block_container'>
             <div class='cont'>
-                <h3><a href='?name={{broadcast["username"]}}'>{{broadcast["username"]}}</a></h3>
+                <h3><a href='profile?name={{broadcast["username"]}}'>{{broadcast["username"]}}</a></h3>
                 <p id=time-stamp>{{broadcast["time"]}}</p>
                 <p>{{broadcast["message"]}}</p> </br>
-                <img class='icons' src=img/like.svg style="width: 1.5em">
+                <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="favouriteBroadcast(this.id)" src=img/like.svg style="width: 1.5em"></a>
+                {{broadcast["likes"]}}
+                <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="blockBroadcast(this.id)" src=img/block.svg style="width: 1.5em"></a>
             </div>
         </div>
     {% endfor %}
 
 </div>
+
+
+<script src="js/blockfilter.js"></script>
 
 {% endblock %}

@@ -81,6 +81,7 @@
                 {% else %}
                     <li><div class='green_box'><span>{{ messageObj["message"] }}</span></div></li>
                     <li><div class='time-left'><span>{{ messageObj["time"] }}</span></div></li>
+                    <li><div class='time-left'><span><a href='profile?name={{messageObj["username"]}}'>{{ messageObj["username"] }}</a></span></div></li>
                 {% endif %}
             {% endfor %}
         </ul>

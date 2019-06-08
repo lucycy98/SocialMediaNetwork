@@ -129,7 +129,7 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
-                database.addReceivedMessage(target_username, target_pubkey, encr_message, sender_created_at, encr_message, username, loginserver_record)
+                database.addReceivedMessage(target_username, target_pubkey, encr_message, sender_created_at, encr_message, username, loginserver_record, "false")
         response = helper.generateResponseJSON(error)
         return response
     
@@ -214,7 +214,7 @@ class MainApp(object):
             else:
                 print("group message is")
                 print(group_message)
-                database.addGroupMessage(groupkey_hash, username, group_message, sender_created_at, target_user)
+                database.addGroupMessage(groupkey_hash, username, group_message, sender_created_at, 'false')
         response = helper.generateResponseJSON(error)
         return response
     

@@ -25,6 +25,7 @@ def addMetaData(key,value,username):
         database.addBlockedUser(username, value)
     elif key == "block_pubkey":
         #TODO add pubkey ?????????
+        print("someone added a pubkey")
     
 def postJson(payload, headers, url):
 

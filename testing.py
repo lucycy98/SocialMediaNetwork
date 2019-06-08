@@ -8,7 +8,7 @@ import nacl.hash
 import helper
 import re
 
-text = "!Meta:favourite_broadcast:"
+text = "!Meta:favourite_broadcast:d"
 x =re.search("^!Meta:(\w+):(\w+)", text)
 print(x)
 if x:

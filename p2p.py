@@ -320,14 +320,23 @@ class p2p():
                     loginserver_record = broadcast.get("loginserver_record", None)
                     if not loginserver_record:
                         continue
+                    message = broadcast.get("message", None)
                     username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
-                    database.addBroadCast(broadcast.get("loginserver_record", None), broadcast.get("message", None), broadcast.get("sender_created_at", None), broadcast.get("signature", None), username)
+                    isMeta = re.search("^!Meta:(\w+):(\w+)", message)
+                    if not isMeta:
+                        database.addBroadCast(broadcast.get("loginserver_record", None), broadcast.get("message", None), broadcast.get("sender_created_at", None), broadcast.get("signature", None), username, 'false')
+                    else:
+                        database.addBroadCast(broadcast.get("loginserver_record", None), broadcast.get("message", None), broadcast.get("sender_created_at", None), broadcast.get("signature", None), username, 'true')
+                        key = isMeta.group(1)
+                        val = isMeta.group(2)
+                        helper.addMetaData(key,val,username)
+                
                 for pm in private_messages:
                     loginserver_record = broadcast.get("loginserver_record", None)
                     if not loginserver_record:
                         continue
                     username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
-                    database.addReceivedMessage(pm.get("target_username", None), pm.get("target_pubkey", None), pm.get("encrypted_message", None), pm.get("sender_created_at", None), pm.get("signature", None), username, loginserver_record)
+                    database.addReceivedMessage(pm.get("target_username", None), pm.get("target_pubkey", None), pm.get("encrypted_message", None), pm.get("sender_created_at", None), pm.get("signature", None), username, loginserver_record, 'false')
             else:
                 print("response not OK")
 
@@ -374,7 +383,7 @@ class p2p():
         loginrecord = user.get("loginserver_record", None)
         encr_message = helper.encryptMessage(message, user_pubkey)
         ts = str(time.time())
-        database.addReceivedMessage(target_username, user_pubkey, encr_message, ts, message, sender_username, loginrecord) #sending myself a message.
+        database.addReceivedMessage(target_username, user_pubkey, encr_message, ts, message, sender_username, loginrecord, 'false') #sending myself a message.
         
 
             

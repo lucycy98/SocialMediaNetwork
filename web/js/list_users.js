@@ -11,7 +11,7 @@ function refreshInfo() {
   }
   //Update list of users every x seconds
   refreshInfo()
-  var interval2 = setInterval(refreshInfo, 2000);
+  var interval2 = setInterval(refreshInfo, 10000);
 
 function getParam(){
 	var url = new URL(window.location.href);

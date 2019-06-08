@@ -14,6 +14,7 @@ import database
 import p2p
 from jinja2 import Environment, FileSystemLoader
 import helper
+import cherrypy.process.plugins
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 j2_env = Environment(loader=FileSystemLoader(THIS_DIR), trim_blocks=True)
@@ -244,6 +245,9 @@ class MainApp(object):
         cherrypy.session['password'] = password
         cherrypy.session["logserv"] = logserv
         cherrypy.session["p2p"] = peer
+        threadReport = loginserver.MyThread(logserv)
+        cherrypy.session["thread"] = threadReport
+        threadReport.start()
         raise cherrypy.HTTPRedirect('/index')
     
     @cherrypy.expose
@@ -441,9 +445,13 @@ class MainApp(object):
     def signout(self):
         """Logs the current user out, expires their session"""
         logserv = cherrypy.session.get("logserv", None)
-        if logserv is None:
+        th = cherrypy.session.get("thread", None)
+        if logserv is None or th is None:
             pass
         else:
+            if th.IsAlive:
+                th.stop()
             logserv.reportUser("offline")
+            logserv.thread_stop()
             cherrypy.lib.sessions.expire()
         raise cherrypy.HTTPRedirect('/')

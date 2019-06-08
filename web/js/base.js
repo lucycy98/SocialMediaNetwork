@@ -4,6 +4,3 @@ function report() {
 	xhttp.timeout = 8000;
 	xhttp.send(null); 
 }
-
-report()
-var myvar = setInterval(report, 30000);

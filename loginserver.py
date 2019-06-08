@@ -14,6 +14,7 @@ import os
 import helper
 import socket
 import main
+import threading
 
 class loginserver():
     def __init__(self, username, password, password2):
@@ -29,6 +30,7 @@ class loginserver():
         self.hex_key = None
         self.password2 = password2
         #self.getNewApiKey()
+        
 
     def ping(self):
         headers = self.createAuthorisedHeader(True)
@@ -74,6 +76,7 @@ class loginserver():
     function to report the User. status can be offline, online, away, busy.
     '''
     def reportUser(self, status):
+        print("reporting user" + str(self.username))
         headers = self.createAuthorisedHeader(True)
         url = "http://cs302.kiwi.land/api/report"
         pubkey = self.signing_key.verify_key
@@ -448,3 +451,27 @@ class loginserver():
         else:
             print("Failure")
             return 1
+
+#---------------------Threading for continuous reporting & pinging--------------------------
+
+class MyThread(threading.Thread):
+
+    def __init__(self, logserv):
+        threading.Thread.__init__(self)
+        self._stop = threading.Event()
+        self.logserv = logserv
+
+    def stop(self):
+        print("stopping thread")
+        self._stop.set()
+
+    def stopped(self):
+        print(self._stop.isSet())
+        return self._stop.isSet()
+
+    def run(self):
+        while not self.stopped():
+            try:
+                self.logserv.reportUser("online")
+            finally:
+                time.sleep(1)

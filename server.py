@@ -26,6 +26,7 @@ class MainApp(object):
     _cp_config = {'tools.encode.on': True, 
                   'tools.encode.encoding': 'utf-8',
                   'tools.sessions.on' : 'True',
+                  
                  }       
 
     # If they try somewhere we don't know, catch it here and send them to the right place.
@@ -35,6 +36,16 @@ class MainApp(object):
         cherrypy.response.status = 404
         template = j2_env.get_template('web/404.html')
         output = template.render(url_index='index')
+        return output
+    
+    # If they try somewhere we don't know, catch it here and send them to the right place.
+    @cherrypy.expose
+    def internal_error(self, *args, **kwargs):
+        """internal 500 error"""
+        cherrypy.response.status = 500
+        cherrypy.lib.sessions.expire()
+        template = j2_env.get_template('web/500.html')
+        output = template.render(url_index='login')
         return output
 
     @cherrypy.expose

@@ -29,7 +29,6 @@ class loginserver():
         self.getConnectionAddress()
         self.hex_key = None
         self.password2 = password2
-        #self.getNewApiKey()
         self.status = "online"
 
     def clearPrivateData(self):
@@ -60,7 +59,6 @@ class loginserver():
         ip = urllib.request.urlopen('http://ipv4.icanhazip.com').read()
         publicip = ip.rstrip().decode('utf-8')
 
-        #localip = socket.gethostbyname(socket.gethostname())
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         localip = s.getsockname()[0]
@@ -71,14 +69,11 @@ class loginserver():
         elif '172.23' in localip or '172.24' in localip:
             self.connection_address = localip
             self.connection_location = '1'
-            
         else:
             self.connection_address = publicip
             self.connection_location = '2'
         #adding port 
         self.connection_address += ":" + str(main.LISTEN_PORT)
-
-    
         print("MY IP IS")
         print(self.connection_address)
         print(self.connection_location)
@@ -106,14 +101,16 @@ class loginserver():
             "incoming_pubkey": pubkey_hex_str,
             "status": status
         }
+        try: 
+            JSON_object = helper.postJson(payload, headers, url)
 
-        JSON_object = helper.postJson(payload, headers, url)
-
-        response = JSON_object.get("response", None)
-        if response == "ok":
-            return 0
-        else:
-            print ("error in reporting")
+            response = JSON_object.get("response", None)
+            if response == "ok":
+                return 0
+            else:
+                raise Exception("response not ok")
+        except Exception as e:
+            print(e)
             return 1
 
     '''
@@ -336,10 +333,10 @@ class loginserver():
                 try:
                     key = helper.getSymmetricKeyFromPassword(self.password2)
                     private_data_str = helper.decryptStringKey(key, private_data_bytes)
-                except nacl.exceptions.CryptoError as e: #TODO change to specific exception
+                except nacl.exceptions.CryptoError as e:
                     print(e)
                     return 1
-                except Exception as e:
+                except Exception as e: #TODO handle better
                     print(e)
                     return 1
                 else: 
@@ -379,15 +376,18 @@ class loginserver():
             "client_saved_at": ts,
             "signature": signature_hex_str
         }
-
-        JSON_object = helper.postJson(payload, headers, url_add)
-        response = JSON_object.get("response", None)
-        if response == "ok":
-            print("added to private data successfully!")
-            return 0
-        else:
-            print ("Failed to save private data")
+        try: 
+            JSON_object = helper.postJson(payload, headers, url_add)
+            response = JSON_object.get("response", None)
+            if response == "ok":
+                print("added to private data successfully!")
+                return 0
+            else:
+                raise Exception("failed to save private datta")
+        except Exception as e:
+            print(e)
             return 1
+
 
     '''
     gets api key for this session. 
@@ -443,44 +443,8 @@ class loginserver():
                 'Content-Type' : 'application/json; charset=utf-8',
             }
         return headers
-            
 
-    '''
-    sends a POST/GET request to the URL endpoint specified.
-    returns the JSON response
-    ''' 
-    def postJson(self, payload, headers, url):
-
-        if payload is not None:
-            payload = json.dumps(payload).encode('utf-8')
-        try:
-            req = urllib.request.Request(url, data=payload, headers=headers)
- 
-            response = urllib.request.urlopen(req)
-            data = response.read() # read the received bytes
-            encoding = response.info().get_content_charset('utf-8') #load encoding if possible (default to utf-8)
-            response.close()
-        except urllib.error.HTTPError as error:
-            print(error.read())
-            exit()
-            return None #unneeded?
-        
-        JSON_object = json.loads(data.decode(encoding))
-        return JSON_object
-
-    '''
-    checks whether the user name and password is valid
-    '''
-    def authoriseUserLogin(self):
-        print("Log on attempt from {0}:{1}".format(self.username, self.password))
-        if (self.username.lower() == "lche982") and (self.password.lower() == "lucycy98_864045152"):
-            print("Success")
-            return 0
-        else:
-            print("Failure")
-            return 1
-
-#---------------------Threading for continuous reporting & pinging--------------------------
+#---------------------Threading for continuous reporting & pinging and updating users--------------------------
 
 class MyThread(threading.Thread):
 
@@ -503,6 +467,6 @@ class MyThread(threading.Thread):
             try:
                 self.logserv.reportUser()
                 self.logserv.getUsers()
-                #self.p2p.pingCheckUsers()
+                self.p2p.pingCheckUsers()
             finally:
                 time.sleep(200)

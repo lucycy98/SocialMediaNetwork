@@ -31,11 +31,9 @@ $(document).ready(function() {
         $.each($("input[name='username']:checked"), function(){            
             names.push($(this).val());
         });
-        alert("creating group chats")
+        alert("Creating group chats, please wait while this occurs.")
         makeGroupChat(names)
-        modal.style.display = "none";
-        
-        
+        location.reload()
     });
 });
 

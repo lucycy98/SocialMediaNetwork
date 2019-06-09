@@ -294,9 +294,14 @@ class p2p():
         print("TRYING TO ADD SEND MESSAGE TO DATABASE.....")
         database.addsentMessages(self.username, target_group_hash, self_encrypted_message, ts, "group")
         print(target_group_hash)
-        all_users = database.getAllUsers()
 
-        for user in all_users:
+
+        target_users = database.getGroupUsers(target_group_hash)
+        print(target_users)
+
+        for tg in target_users:
+            username = tg.get("username")
+            user = database.getUserData(username)
             user_address = user.get("address", None)
             user_status = user.get("status", None)
             if user_address is None or user_status != "online":
@@ -333,10 +338,9 @@ class p2p():
         JSON = {"data": data}
         return JSON
 
-    def retrieveOfflineData(self):
+    def retrieveOfflineData(self, since):
         headers = self.createAuthorisedHeader(True)
 
-        since = str(time.time())
         all_users = database.getAllUsers()
         for user in all_users:
             user_address = user.get("address", None)
@@ -349,40 +353,38 @@ class p2p():
             try:
                 JSON_object = helper.postJson(None, headers, url)
                 print(JSON_object)
-            except:
+            except Exception as e:
                 print("FAILED TO sent group message!")
-                return 1
-
-            response = JSON_object.get("response", None)
-            if response == "ok":
-                broadcasts = JSON_object.get("broadcasts", None)
-                private_messages = JSON_object.get("private_messages", None)
-                for broadcast in broadcasts:
-                    loginserver_record = broadcast.get("loginserver_record", None)
-                    if not loginserver_record:
-                        continue
-                    message = broadcast.get("message", None)
-                    username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
-                    isMeta = re.search("^!Meta:(\w+):(\w+)", message)
-                    if not isMeta:
-                        database.addBroadCast(broadcast.get("loginserver_record", None), broadcast.get("message", None), broadcast.get("sender_created_at", None), broadcast.get("signature", None), username, 'false')
-                    else:
-                        database.addBroadCast(broadcast.get("loginserver_record", None), broadcast.get("message", None), broadcast.get("sender_created_at", None), broadcast.get("signature", None), username, 'true')
-                        key = isMeta.group(1)
-                        val = isMeta.group(2)
-                        helper.addMetaData(key,val,username)
-                
-                for pm in private_messages:
-                    loginserver_record = broadcast.get("loginserver_record", None)
-                    if not loginserver_record:
-                        continue
-                    username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
-                    database.addReceivedMessage(pm.get("target_username", None), pm.get("target_pubkey", None), pm.get("encrypted_message", None), pm.get("sender_created_at", None), pm.get("signature", None), username, loginserver_record, 'false')
             else:
-                print("response not OK")
 
+                response = JSON_object.get("response", None)
+                if response == "ok":
+                    broadcasts = JSON_object.get("broadcasts", None)
+                    private_messages = JSON_object.get("private_messages", None)
+                    for broadcast in broadcasts:
+                        loginserver_record = broadcast.get("loginserver_record", None)
+                        if not loginserver_record:
+                            continue
+                        message = broadcast.get("message", None)
+                        username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
+                        isMeta = re.search("^!Meta:(\w+):(\w+)", message)
+                        if not isMeta:
+                            database.addBroadCast(broadcast.get("loginserver_record", None), broadcast.get("message", None), broadcast.get("sender_created_at", None), broadcast.get("signature", None), username, 'false')
+                        else:
+                            database.addBroadCast(broadcast.get("loginserver_record", None), broadcast.get("message", None), broadcast.get("sender_created_at", None), broadcast.get("signature", None), username, 'true')
+                            key = isMeta.group(1)
+                            val = isMeta.group(2)
+                            helper.addMetaData(key,val,username)
+                    
+                    for pm in private_messages:
+                        loginserver_record = broadcast.get("loginserver_record", None)
+                        if not loginserver_record:
+                            continue
+                        username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
+                        database.addReceivedMessage(pm.get("target_username", None), pm.get("target_pubkey", None), pm.get("encrypted_message", None), pm.get("sender_created_at", None), pm.get("signature", None), username, loginserver_record, 'false')
+                else:
+                    print("response not OK")
 
-        
     '''
     returns an authorised header
     '''

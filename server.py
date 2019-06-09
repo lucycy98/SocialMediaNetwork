@@ -193,6 +193,7 @@ class MainApp(object):
             template = j2_env.get_template('web/message.html')
             users = database.getAllUsers()
             groupchats = database.getAllGroupChats(myUsername)
+            online_users = []
             if not users:
                 users = []
             
@@ -203,6 +204,8 @@ class MainApp(object):
                 if not username or not status or not validUser:
                     continue
                 data[username]=status
+                if status == 'online':
+                    online_users.append(username)
 
             if name is not None or groupname is not None:
                 signing_key = logserv.signing_key
@@ -307,9 +310,16 @@ class MainApp(object):
         cherrypy.session['password'] = password
         cherrypy.session["logserv"] = logserv
         cherrypy.session["p2p"] = peer
+
+        data = database.getUserData(username)
+        since = str(data.get("lastReport"))
+
         threadReport = loginserver.MyThread(logserv, peer)
         cherrypy.session["thread"] = threadReport
         threadReport.start()
+
+        offline_thread = threading.Thread(target=peer.retrieveOfflineData, args=(since,))
+        offline_thread.start()
         raise cherrypy.HTTPRedirect('/index')
     
     @cherrypy.expose

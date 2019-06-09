@@ -24,14 +24,16 @@
             
             <form>
                 <h3>Add participants to your group:<button class = 'buttons' id='groupchat-btn' type="button">Create</button></h3>
+                <p>Note: you can only message online users</p>
                 <br>
 
                 <ul class=people-list id='group-list'>
                     {% for username in onlineusers %}
-                        <li><label><input type='checkbox' value='{{username}}' name='username'><span></span>{{username}}</label></li>
+                        {% if onlineusers[username]  == 'online' %}
+                            <li><label><input type='checkbox' value='{{username}}' name='username'><span></span>{{username}}</label></li>
+                        {% endif %}
                     {% endfor %}
 
-                       
                     </ul>
                 
             </form>

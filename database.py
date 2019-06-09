@@ -73,6 +73,11 @@ def addBlockedWord(username, word):
     c.execute("INSERT INTO blockedWords VALUES('{a}', '{b}')".format(a=username, b=word))
     closeDatabase(conn)
 
+def deleteBlockedWord(username, word):
+    conn, c = loadDatabase()
+    c.execute("DELETE FROM blockedWords WHERE username='{a}' AND word='{b}'".format(a=username, b=word))
+    closeDatabase(conn)
+
 def getBlockedUser(username):
     conn, c = loadDatabase()
     c.execute("SELECT * FROM blockedUsers WHERE username='{a}'".format(a = username))
@@ -86,9 +91,22 @@ def addBlockedUser(username, blockUser):
     c.execute("INSERT INTO blockedUsers VALUES('{a}', '{b}')".format(a=username, b=blockUser))
     closeDatabase(conn)
 
+def deleteBlockedUser(username, user):
+    conn, c = loadDatabase()
+    c.execute("DELETE FROM blockedUsers WHERE username='{a}' AND blockedUser='{b}'".format(a=username, b=user))
+    closeDatabase(conn)
+
 def getBlockedBroadcasts(username):
     conn, c = loadDatabase()
     c.execute("SELECT * FROM blockedBroadcasts, broadcasts WHERE blockedBroadcasts.username='{a}' AND blockedBroadcasts.signature = broadcasts.signature ORDER BY sender_created_at DESC".format(a = username))
+    result = c.fetchall()
+    data = resultToJSON(result, c)
+    closeDatabase(conn)
+    return data
+
+def getAllBlockedBroadcasts():
+    conn, c = loadDatabase()
+    c.execute("SELECT * FROM blockedBroadcasts, broadcasts WHERE blockedBroadcasts.signature = broadcasts.signature ORDER BY sender_created_at DESC".format(a = username))
     result = c.fetchall()
     data = resultToJSON(result, c)
     closeDatabase(conn)

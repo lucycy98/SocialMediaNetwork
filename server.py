@@ -15,6 +15,7 @@ import p2p
 from jinja2 import Environment, FileSystemLoader
 import helper
 import cherrypy.process.plugins
+import threading
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 j2_env = Environment(loader=FileSystemLoader(THIS_DIR), trim_blocks=True)
@@ -38,6 +39,7 @@ class MainApp(object):
 
     @cherrypy.expose
     def index(self, filterVal=None, status=None):
+        allusers = database.getAllUsers()
 
         logserv = cherrypy.session.get("logserv", None)
         if logserv is None:
@@ -55,8 +57,8 @@ class MainApp(object):
 
             if filterVal == "favourite":
                 all_broadcasts = database.getFavBroadcasts(username)
-            elif filterVal == "blocked":
-                all_broadcasts = database.getFavBroadcasts(username)
+            elif filterVal == "safe":
+                pass
             else:
                 all_broadcasts = database.getAllBroadcasts()
                 filterVal = "recent"
@@ -64,20 +66,41 @@ class MainApp(object):
                 all_broadcasts = []
             data = []
             for broadcast in all_broadcasts:
-                tup = {}            
-                tup["message"] = broadcast.get("message")
-                tup["username"] = broadcast.get("username")
+                tup = {}     
+                message = broadcast.get("message") 
+                broadcastUser = broadcast.get("username")      
                 time = broadcast.get("sender_created_at")
+                sig = broadcast.get("signature")
+
+                validMessage = helper.checkValidMessage(username, message)
+                validUser = helper.checkValidUser(username, broadcastUser)
+
+                if filterVal == "safe": #if block, then block ALL broadcasts by everyone.
+                    validBroadcast = helper.checkValidBroadcastAll(sig)
+                else:
+                    validBroadcast = helper.checkValidBroadcast(username, sig)
+
+                if not validUser or not validBroadcast:
+                    tup["username"] = 'invalid username' #dont display at all
+                else:
+                    tup["username"] = broadcastUser
+                
+                if not validMessage:
+                    tup["message"] = 'invalid message'
+                else:
+                    tup["message"] = message
+                
                 tup["time"] = helper.formatTime(time)
-                tup["signature"] = broadcast.get("signature")
+                tup["signature"] = sig
                 tup["likes"] = database.getNumberLikesBroadcasts(broadcast.get("signature", None))
                 data.append(tup)
             template = j2_env.get_template('web/index.html')
-            output = template.render(broadcasts=data, filter=filterVal)
+            output = template.render(broadcasts=data, filter=filterVal, allusers=allusers)
         return output
     
     @cherrypy.expose
     def profile(self, name=None, filterVal=None):
+        allusers = database.getAllUsers()
         logserv = cherrypy.session.get("logserv", None)
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
@@ -91,6 +114,9 @@ class MainApp(object):
                 isOwn = True
             else:
                 profile = database.getUserData(name)
+                validUser = helper.checkValidUser(username, name)
+                if not validUser:
+                    profile["username"] = "Blocked user"
                 if filterVal == "favourite":
                     broadcasts = database.getFavBroadcasts(name)
                 elif filterVal == "blocked":
@@ -99,34 +125,57 @@ class MainApp(object):
                     broadcasts = database.getAllBroadcastsUser(name)
                     filterVal = "recent"
 
-                
                 isOwn = False
           
             if not broadcasts:
                 broadcasts = []
 
             for broadcast in broadcasts:
+                message = broadcast.get("message") 
+                broadcastUser = broadcast.get("username")      
+                time = broadcast.get("sender_created_at")
+                sig = broadcast.get("signature")
+
+                validMessage = helper.checkValidMessage(username, message)
+                validBroadcast = helper.checkValidBroadcast(username, sig)
+
+                if not validBroadcast:
+                    broadcast["username"] = 'invalid username' #dont display at all
+                
+                if not validMessage:
+                    broadcast["message"] = 'invalid message'
+
                 time = broadcast.get("sender_created_at")
                 broadcast["time"] = helper.formatTime(time)
                 broadcast["likes"] = database.getNumberLikesBroadcasts(broadcast.get("signature", None))
-            if profile is None:
-                profile = database.getUserData(username)      
-                isOwn = True        
-            output = template.render(profile=profile, broadcasts=broadcasts, isOwn=isOwn)
+
+            output = template.render(profile=profile, broadcasts=broadcasts, isOwn=isOwn, allusers=allusers)
         return output
     
     @cherrypy.expose
-    def settings(self):
+    def settings(self, blockWord=None, unblockWord=None, blockUser=None, unblockUser=None):
+        allusers = database.getAllUsers()
 
         logserv = cherrypy.session.get("logserv", None)
-        if logserv is None:
+        username = cherrypy.session.get("username", None)
+        if logserv is None or not username:
             raise cherrypy.HTTPRedirect('/login')
         else:
+
+            if blockWord:
+                database.addBlockedWord(username, blockWord)
+            elif unblockWord:
+                database.deleteBlockedWord(username, unblockWord)
+            elif blockUser:
+                database.addBlockedUser(username, blockUser)
+            elif unblockUser:
+                database.deleteBlockedUser(username, unblockUser)
+
+            blockedUsers = database.getBlockedUser(username)
+            blockedWords = database.getBlockedWords(username)
+
             template = j2_env.get_template('web/settings.html')
-            blockedusers = database.getBlockedUser(cherrypy.session["username"])
-            print("blocked users")
-            print(blockedusers)
-            output = template.render(blocked_users=blockedusers)
+            output = template.render(blocked_words=blockedWords, blocked_users=blockedUsers, allusers=allusers)
         
         return output
 
@@ -138,18 +187,20 @@ class MainApp(object):
         if logserv is None:
             raise cherrypy.HTTPRedirect('/login')
         else:
+            myUsername = cherrypy.session["username"]
             messages = []
             data = {}
             template = j2_env.get_template('web/message.html')
             users = database.getAllUsers()
-            groupchats = database.getAllGroupChats(cherrypy.session["username"])
+            groupchats = database.getAllGroupChats(myUsername)
             if not users:
                 users = []
             
             for user in users:
                 username = user.get("username", None)
                 status = user.get("status", None)
-                if username is None or status is None:
+                validUser = helper.checkValidUser(myUsername, username)
+                if not username or not status or not validUser:
                     continue
                 data[username]=status
 
@@ -176,13 +227,10 @@ class MainApp(object):
                     messages = database.getGroupConversation(username, groupname)
                     
                     isGroup = True
-                    print("group messages")
-                    print(messages)
-                    print(groupname)
+        
                 if messages is None:
                     messages = []
                 
-                print(messages)
                 for message in messages:
                     time = message["sender_created_at"]
                     time = helper.formatTime(time)
@@ -195,25 +243,34 @@ class MainApp(object):
 
                     if status == "received" and isGroup:
 
+                        validUser = helper.checkValidUser(cherrypy.session["username"], message["username"])
+                        if not validUser:
+                            message["username"] == 'invalid user'
+
                         target_group_bytes = bytes(groupname, encoding='utf-8')
                         key = helper.getEncryptionKey(logserv, target_group_bytes)
-                        print("KEY IS")
-                        print(key)
-                        print(target_group_bytes)
+
                         #dex hexing message 
                         bytes_message = bytes.fromhex(encr_message)
                         decr_message = helper.decryptStringKey(key, bytes_message)
                        
                     else:
                         decr_message = helper.decryptMessage(encr_message, signing_key)
-                        print(decr_message)
-                        decr_message = decr_message.decode('utf-8')
+                        decr_message = decr_message.decode('utf-8')               
+
                 
                     if not decr_message:
                         print("ERROR")
                         decr_message = "ERROR DECRYPTING"
+
+                    validMessage = helper.checkValidMessage(username, decr_message)
+                    if not validMessage:
+                        decr_message = "invalid message"
+                    
+                   
+
                     message["message"] = decr_message
-        output = template.render(username=name,messages=messages, onlineusers=data, groupchats=groupchats, groupname=groupname)
+        output = template.render(username=name, messages=messages, onlineusers=data, groupchats=groupchats, groupname=groupname, allusers=users)
         return output
         
         
@@ -290,7 +347,8 @@ class MainApp(object):
         if p2p is None or message is None:
             pass
         else:
-            p2p.sendBroadcastMessage(message)
+            message_thread = threading.Thread(target=p2p.sendBroadcastMessage, args=(message,))
+            message_thread.start()
         raise cherrypy.HTTPRedirect('/index')
     
     @cherrypy.expose
@@ -302,7 +360,7 @@ class MainApp(object):
             pass
         else:
             database.addBlockedUser(cherrypy.session["username"], username)
-            helper.addToPrivateData(logserv, "blocked_usernames", signature)
+            helper.addToPrivateData(logserv, "blocked_usernames", username)
             message = "!Meta:block_username:" + username
             p2p.sendBroadcastMessage(message)
             raise cherrypy.HTTPRedirect('/index')
@@ -420,10 +478,12 @@ class MainApp(object):
                 raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=names[0]))
             elif len(names) == 0:
                 return
+
             error, groupkey_hash = p2p.createGroupChatP2p(names)
-            if error == 0: #invite sent to at least one person for every req
-                print("OK")            
-        #raise cherrypy.HTTPRedirect('/message?groupname={a}'.format(a= groupkey_hash)) 
+            print("DONE")
+            print(groupkey_hash)
+            #if error == 0: #invite sent to at least one person for every req
+            raise cherrypy.HTTPRedirect('/message?groupname={a}'.format(a=groupkey_hash)) 
         raise cherrypy.HTTPRedirect('/index')
         
     @cherrypy.expose
@@ -434,8 +494,8 @@ class MainApp(object):
         if logserv is None or th is None:
             pass
         else:
-            if th.IsAlive:
-                th.stop()
+
+            th.stop()
             logserv.reportUser("offline")
             cherrypy.lib.sessions.expire()
         raise cherrypy.HTTPRedirect('/')

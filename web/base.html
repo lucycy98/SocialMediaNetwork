@@ -16,11 +16,11 @@
         
         
         <div class="dropdown-new"> 
-        <input type="text" placeholder="Search.." id="myInput" onfocus='showtable()' onfocusout='showtable()' onkeyup="filterFunction()">  
+        <input type="text" placeholder="Search profile.." id="myInput" onfocus='showtable()' onkeyup="filterFunction()">  
         <div id="dropdown-id" class="dropdown-content-search">
-            <a href="#about">About</a>
-            <a href="#base">Base</a>
-            <a href="#blog">Blog</a>
+            {% for user in allusers %}
+                <a href='profile?name={{ user["username"] }}'>{{ user["username"] }}</a>
+            {% endfor %}
          </div>
         </div>
     

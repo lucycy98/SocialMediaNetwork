@@ -1,0 +1,96 @@
+.container {
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    display: inline-block;
+  }
+
+  
+  #block-btn {
+    padding: 10px;
+    width: 15%;
+    background: #d9d9d9;
+    color: #555;
+    float: right;
+    text-align: center;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 0;
+  }
+
+    /* Style the input */
+    #block-input {
+        margin: 0;
+        border: none;
+        border-radius: 0;
+        width: 75%;
+        padding: 10px;
+        float: left;
+        font-size: 16px;
+      }
+
+/* Remove margins and padding from the list */
+ul {
+    margin: 0;
+    padding: 0;
+    display: inline-block;
+  }
+  
+  /* Style the list items */
+  ul li {
+    float: left;
+
+    cursor: pointer;
+    position: relative;
+    padding: 1em 2.5em;
+    list-style-type: none;
+    background: #eee;
+    font-size: 18px;
+    transition: 0.2s;
+    
+    /* make the list items unselectable */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+  }
+  
+  /* Set all odd list items to a different color (zebra-stripes) */
+  ul li:nth-child(odd) {
+    background: #f9f9f9;
+  }
+  
+  /* Darker background-color on hover */
+  ul li:hover {
+    background: #ddd;
+  }
+  
+  /* Style the close button */
+  .close {
+    position: absolute;
+    right: 0;
+    top: 0;
+    padding: 1em;
+  }
+  
+  .close:hover {
+    color: #f44336;
+    font-weight: bold;
+    font-size: 110%;
+  }
+  
+  /* Style the header */
+  .title {
+    background-color: #f44336;
+    padding: 1em 2em;
+    color: white;
+    text-align: center;
+    display: block;
+  }
+  
+  /* Clear floats after the header */
+  .title:after {
+    content: "";
+    display: table;
+    clear: both;
+  }

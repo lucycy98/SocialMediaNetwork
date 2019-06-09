@@ -33,3 +33,15 @@ function filterFunction() {
         }
     }
 }
+
+function checkSizeBroadcast(){
+	message = document.getElementById('bc').value
+	if (message.length > 256){
+		alert("message cannot exceed 256 characters!")
+		return false;
+	} else if (message.length == 0){
+		alert("message cannot be empty!")
+		return false;
+	}
+	return true;
+}

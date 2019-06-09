@@ -1,5 +1,18 @@
 var last_clicked_username = null;
 
+function checkSize(){
+	message = document.getElementById('msg').value
+	alert(message.length)
+	if (message.length > 1024){
+		alert("message cannot exceed 1024 characters!")
+		return false;
+	} else if (message.length == 0){
+		alert("message cannot be empty!")
+		return false;
+	}
+	return true;
+}
+
 function refreshInfo() {
 	$.ajax({
 		url: "/message"
@@ -19,54 +32,6 @@ function getParam(){
 	document.getElementById('targetuser').value = c;
 }
 
-function clickfuncMessage(object) {
-	last_clicked_username = object;
-	document.getElementById("msgheader").innerHTML = "<a href='/profile?name=" + last_clicked_username+ "'>" + last_clicked_username + "</a>"
-	document.getElementById('targetuser').value = last_clicked_username;
-	retrievePrivateMessages(last_clicked_username)
-}
-
-function refreshMessages() {
-	retrievePrivateMessages(last_clicked_username);
-}
-
-function retrievePrivateMessages(username) {
-	var xhttp = new XMLHttpRequest();
-	xhttp.onreadystatechange = function() {
-		
-	if (this.readyState == 4 && this.status == 200) {
-		var obj = JSON.parse(this.response)
-		var messages = obj["data"];
-		Page = ""
-		if (messages.length == 0){
-			Page += "Start a conversation with "
-			Page += username
-			document.getElementById("pm").innerHTML = Page;
-		}
-
-		for (i=0; i < messages.length; i++){
-			messageObj = messages[i];
-			received = messageObj.sent;
-			//time = messageObj.sender_created_at;
-			date = new Date(messageObj.sender_created_at * 1000);
-			time = formatDate(date);
-			if (received == "sent"){
-				Page += "<li><div class='blue_box'><span>" + messageObj.message + "</span></div></li>";
-				Page +="<li><div class='time-right'><span>" + time + "</span></div></li>";
-			} else {
-				Page += "<li><div class='green_box'><span>" + messageObj.message + "</span></div></li>";
-				Page +="<li><div class='time-left'><span>" + time + "</span></div></li>";
-			}
-		}
-		document.getElementById("pm").innerHTML = Page;
-		}
-	};
-	query = "getMessages?username=" + username;
-	xhttp.open("GET", query, true);
-	xhttp.timeout = 8000;
-	xhttp.send(null); 
-
-}
 
 function formatDate(date) {
 	var hours = date.getHours();

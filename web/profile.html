@@ -13,13 +13,12 @@
 
     <h1>
         {{ profile['username'] }} 
-    
     </h1>
-    {% if not isOwn %}
-            <a href="#"><img src="img/block.svg" alt="bottle" onclick="sendBlockData()" style="width: 1.5em; float: right;"></a>
-    {% endif %}
-    
-    
+
+    {% if profile["username"] != 'Blocked user' %}
+        {% if not isOwn %}
+                <button id='block-user' onclick="sendBlockData()">Blocker user</button>
+        {% endif %}
     
     <table class=profile-table>
         <tr>
@@ -39,6 +38,7 @@
                 <td class='cell-txt'>{{ profile['status'] }}</td>
         </tr>
     </table>
+    {%endif%}
 
 
 </div>
@@ -47,10 +47,10 @@
     {% if isOwn %}
     <div class='block_container'>
             <div class='cont'>
-                <form name="messageform">
-                    <input type="text" name="q" placeholder='Make a public broadcast.'> </br></br>
-                    <input type="submit" value="Send">
-                </form>
+                    <form action="/sendBroadcastMessage" method="post" enctype="multipart/form-data">
+                        <input type="text" id='bc' name="message" placeholder='Make a public broadcast.'> </br></br>
+                        <input type="submit" onclick='return checkSizeBroadcast()' value="Send">
+                    </form>
             </div>
         </div>
     {% endif %}
@@ -65,34 +65,46 @@
     
     {% endif %}
 
-    {% if not isOwn %}
-        <hr> 
+    {% if profile["username"] != 'Blocked user' %}
+        {% if not isOwn %}
+            <hr> 
 
-        <div class="filter">
-            <button onclick="clickFilter()" class="filterbtn">Filter by: {{ filter }}</button>
-            <div id="myFilter" class="filter-content">
-            <a href='?name={{profile["username"]}}'>Their Posts</a>
-            <a href='?name={{profile["username"]}}&filterVal=favourite'>Favourited</a>
-            <a href='?name={{profile["username"]}}&filterVal=blocked'>Blocked</a>
+            <div class="filter">
+                <button onclick="clickFilter()" class="filterbtn">Filter by: {{ filter }}</button>
+                <div id="myFilter" class="filter-content">
+                <a href='?name={{profile["username"]}}'>Their Posts</a>
+                <a href='?name={{profile["username"]}}&filterVal=favourite'>Favourited</a>
+                <a href='?name={{profile["username"]}}&filterVal=blocked'>Blocked</a>
+                </div>
             </div>
-        </div>
+        {% endif %}
     {% endif %}
 
 
-    {% for broadcast in broadcasts %}
+    {% if profile["username"] != 'Blocked user' %}
+        {% for broadcast in broadcasts %}
+            {% if broadcast["username"] != 'invalid username'%}
 
-        <div class='block_container'>
-            <div class='cont'>
-                <h3><a href='?name={{profile["username"]}}'>{{profile["username"]}}</a></h3>
-                <p id=time-stamp>{{broadcast["time"]}}</p>
-                <p>{{broadcast["message"]}}</p> </br>
-                <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="favouriteBroadcast(this.id)" src=img/like.svg style="width: 1.5em"></a>
-                {{broadcast["likes"]}}
-                <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="blockBroadcast(this.id)" src=img/block.svg style="width: 1.5em"></a>
-            </div>
-        </div>
-    {% endfor %}
+                <div class='block_container'>
+                    <div class='cont'>
+                        <h3><a href='?name={{profile["username"]}}'>{{profile["username"]}}</a></h3>
+                        <p id=time-stamp>{{broadcast["time"]}}</p>
+                        <p>
+                            {%if broadcast["message"] == 'invalid message'%}
+                                <i>This message contains blocked words</i>
+                            {%else%}
+                                {{broadcast["message"]}}
+                            {%endif%}
+                        </p> </br>
+                        <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="favouriteBroadcast(this.id)" src=img/like.svg style="width: 1.5em"></a>
+                        {{broadcast["likes"]}}
+                        <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="blockBroadcast(this.id)" src=img/block.svg style="width: 1.5em"></a>
+                    </div>
+                </div>
 
+                {% endif %}
+        {% endfor %}
+    {% endif %}
 
 </div>
 

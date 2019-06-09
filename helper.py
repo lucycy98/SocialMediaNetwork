@@ -10,7 +10,34 @@ from nacl import pwhash, secret, utils
 import nacl.hash
 from datetime import datetime
 
-#salt = b'\xa3\x95\\\xec\x1cFpr8\xb7\x92\x7f\x18%)\x88'
+def checkValidUser(username, usernameToCheck):
+    blockedUsers = database.getBlockedUser(username)
+    for user in blockedUsers:
+        if usernameToCheck == user["blockedUser"]:
+            return False
+    return True
+
+def checkValidMessage(username, message):
+    blockedWords = database.getBlockedWords(username)
+    for word in blockedWords:
+        blockedWord = word["word"]
+        if blockedWord in message:
+            return False
+    return True
+
+def checkValidBroadcast(username, signature):
+    broadcasts = database.getBlockedBroadcasts(username)
+    for broadcast in broadcasts:
+        if signature == broadcast["signature"]:
+            return False
+    return True
+
+def checkValidBroadcastAll(signature):
+    broadcasts = database.getAllBlockedBroadcasts()
+    for broadcast in broadcasts:
+        if signature == broadcast["signature"]:
+            return False
+    return True
 
 '''
 sends a POST/GET request to the URL endpoint specified.

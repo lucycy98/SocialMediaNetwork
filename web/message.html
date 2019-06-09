@@ -23,7 +23,7 @@
         <div class='cont'>
             
             <form>
-                <h3>Add participants to your group:<button class = 'buttons' type="button">Create</button></h3>
+                <h3>Add participants to your group:<button class = 'buttons' id='groupchat-btn' type="button">Create</button></h3>
                 <br>
 
                 <ul class=people-list id='group-list'>
@@ -40,6 +40,9 @@
 
         </div>
         <ul class=team-list>
+            {% if groupchats|length == 0 %}
+                You have no group chats. Make one with the plus button.
+            {% endif %}
             {% for groupchat in groupchats %}
             <a href='?groupname={{groupchat["groupkey_hash"]}}'><li>{{ groupchat["groupkey_hash"] }}</li></a>
             {% endfor %}
@@ -79,9 +82,19 @@
                     <li><div class='blue_box'><span>{{ messageObj["message"] }}</span></div></li>
                     <li><div class='time-right'><span>{{ messageObj["time"] }}</span></div></li>
                 {% else %}
-                    <li><div class='green_box'><span>{{ messageObj["message"] }}</span></div></li>
-                    <li><div class='time-left'><span>{{ messageObj["time"] }}</span></div></li>
-                    <li><div class='time-left'><span><a href='profile?name={{messageObj["username"]}}'>{{ messageObj["username"] }}</a></span></div></li>
+                    {% if messageObj["username"] == "invalid user" %}
+                        <li><div class='green_box'><span><i>Message blocked</i></span></div></li>
+                        <li><div class='time-left'><span>{{ messageObj["time"] }}</span></div></li>
+                        <li><div class='time-left'><span>Blocked user</span></div></li>
+                    {% elif messageObj["message"] == 'invalid message' %}
+                        <li><div class='green_box'><span><i>This message contains blocked words</i></span></div></li>
+                        <li><div class='time-left'><span>{{ messageObj["time"] }}</span></div></li>
+                        <li><div class='time-left'><span><a href='profile?name={{messageObj["username"]}}'>{{ messageObj["username"] }}</a></span></div></li>
+                    {% else %}
+                        <li><div class='green_box'><span>{{ messageObj["message"] }}</span></div></li>
+                        <li><div class='time-left'><span>{{ messageObj["time"] }}</span></div></li>
+                        <li><div class='time-left'><span><a href='profile?name={{messageObj["username"]}}'>{{ messageObj["username"] }}</a></span></div></li>
+                    {% endif %}
                 {% endif %}
             {% endfor %}
         </ul>
@@ -90,15 +103,15 @@
     <div class='input-div box'>
         {% if username %}
         <form action="/sendPrivateMessage" method="post" enctype="multipart/form-data">
-            <input type="text" name="message" placeholder='Send a message'>
+            <input type="text" id='msg' name="message" placeholder='Send a message'>
             <input type="hidden" name="target_user" value='{{ username }}'>
-            <input type="submit" value="Send">
+            <input type="submit" onclick='return checkSize()' value="Send">
         </form>
         {% elif groupname %}
         <form action="/sendGroupMessage" method="post" enctype="multipart/form-data">
-            <input type="text" name="message" placeholder='Send a message'>
+            <input type="text" id='msg' name="message" placeholder='Send a message'>
             <input type="hidden" name="groupname" value='{{ groupname }}'>
-            <input type="submit" value="Send">
+            <input type="submit" onclick='return checkSize()' value="Send">
         </form>
         {% endif %}
     </div>
@@ -106,6 +119,5 @@
 <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
 <script src="js/groupchat.js"></script>
 <script src="js/click.js"></script>
-<script src="js/list_users.js">
-</script>
+<script src="js/list_users.js"></script>
 {% endblock %}

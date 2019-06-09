@@ -26,12 +26,16 @@ window.onclick = function(event) {
 }
 
 $(document).ready(function() {
-    $("button").click(function(){
+    $("#groupchat-btn").click(function(){
         var names = [];
         $.each($("input[name='username']:checked"), function(){            
             names.push($(this).val());
         });
+        alert("creating group chats")
         makeGroupChat(names)
+        modal.style.display = "none";
+        
+        
     });
 });
 
@@ -47,3 +51,14 @@ function makeGroupChat(names) {
     var data = JSON.stringify({"names": names});
     xhr.send(data);
 }
+
+function refreshInfo() {
+	$.ajax({
+		url: "/settings"
+	  })
+	  .done(function() {
+		$("#blocked-words").load(location.href+" #blocked-words>*","");
+	  });
+  }  
+
+

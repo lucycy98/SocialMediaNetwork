@@ -18,8 +18,8 @@
     <div class='block_container'>
         <div class='cont'>
             <form action="/sendBroadcastMessage" method="post" enctype="multipart/form-data">
-                <input type="text" name="message" placeholder='Make a public broadcast.'> </br></br>
-                <input type="submit" value="Send">
+                <input type="text" id='bc' name="message" placeholder='Make a public broadcast.'> </br></br>
+                <input type="submit" onclick='return checkSizeBroadcast()' value="Send">
             </form>
         </div>
     </div>
@@ -31,9 +31,9 @@
         <div id="myFilter" class="filter-content">
           <a href="?filterVal=recent">Recent</a>
           <a href="?filterVal=favourite">Favourite</a>
-          <a href="?filterVal=blocked">Blocked</a>
+          <a href="?filterVal=safe">Safe</a>
         </div>
-      </div>
+    </div>
 
     <div id='newposts'></div>
 
@@ -48,16 +48,27 @@
 
     {% for broadcast in broadcasts %}
 
-        <div class='block_container'>
-            <div class='cont'>
-                <h3><a href='profile?name={{broadcast["username"]}}'>{{broadcast["username"]}}</a></h3>
-                <p id=time-stamp>{{broadcast["time"]}}</p>
-                <p>{{broadcast["message"]}}</p> </br>
-                <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="favouriteBroadcast(this.id)" src=img/like.svg style="width: 1.5em"></a>
-                {{broadcast["likes"]}}
-                <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="blockBroadcast(this.id)" src=img/block.svg style="width: 1.5em"></a>
+        {% if broadcast["username"] != 'invalid username'%}
+
+            <div class='block_container'>
+                <div class='cont'>
+                    <h3><a href='profile?name={{broadcast["username"]}}'>{{broadcast["username"]}}</a></h3>
+                    <p id=time-stamp>{{broadcast["time"]}}</p>
+                    <p>
+                        {%if broadcast["message"] == 'invalid message'%}
+                            <i>This message contains blocked words</i>
+                        {%else%}
+                            {{broadcast["message"]}}
+                        {%endif%}
+                    </p> </br>
+                    <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="favouriteBroadcast(this.id)" src=img/like.svg style="width: 1.5em"></a>
+                    {{broadcast["likes"]}}
+                    <a href="#"><img class='icons' id='{{ broadcast["signature"] }}' onclick="blockBroadcast(this.id)" src=img/block.svg style="width: 1.5em"></a>
+                </div>
             </div>
-        </div>
+
+        {%endif%}
+
     {% endfor %}
 
 </div>

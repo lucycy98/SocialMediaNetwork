@@ -31,6 +31,17 @@ class loginserver():
         self.password2 = password2
         #self.getNewApiKey()
         self.status = "online"
+
+    def clearPrivateData(self):
+        print("cleaning priv data")
+        private_data = self.getPrivateData()
+        values = private_data.get("prikeys", None)
+        if not values:
+            values = []
+        signing_key = values[0]
+        values = [signing_key]
+        private_data["prikeys"] = values
+        self.addPrivateData(private_data)
         
 
     def ping(self):
@@ -76,7 +87,8 @@ class loginserver():
     '''
     function to report the User. status can be offline, online, away, busy.
     '''
-    def reportUser(self):
+    def reportUser(self, status=None):
+
         print("reporting user" + str(self.username))
         headers = self.createAuthorisedHeader(True)
         url = "http://cs302.kiwi.land/api/report"
@@ -86,11 +98,14 @@ class loginserver():
         connection_address = self.connection_address
         connection_location = self.connection_location
 
+        if not status:
+            status = self.status
+
         payload = {
             "connection_address" :connection_address,
             "connection_location" : connection_location,
             "incoming_pubkey": pubkey_hex_str,
-            "status": self.status
+            "status": status
         }
 
         JSON_object = helper.postJson(payload, headers, url)
@@ -476,6 +491,6 @@ class MyThread(threading.Thread):
             try:
                 self.logserv.reportUser()
                 self.logserv.getUsers()
-                self.p2p.pingCheckUsers()
+                #self.p2p.pingCheckUsers()
             finally:
-                time.sleep(90)
+                time.sleep(200)

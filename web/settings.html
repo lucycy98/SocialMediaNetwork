@@ -41,9 +41,9 @@
         You have no blocked users.
         {%endif%}
 
-        <ul id="blocked-words">
+        <ul id="blocked-users">
             {%for user in blocked_users %}
-            <li id=' {{ user["blockedUser"] }}'> {{ user["blockedUser"] }}</li>
+            <li id='{{ user["blockedUser"] }}'> {{ user["blockedUser"] }}</li>
             {% endfor %}
         </ul>
     </div>
@@ -57,5 +57,4 @@
 </div>
 
 <script src="js/settings.js"></script>
-<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
 {% endblock %}

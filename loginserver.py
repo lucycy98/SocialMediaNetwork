@@ -42,7 +42,6 @@ class loginserver():
         values = [signing_key]
         private_data["prikeys"] = values
         self.addPrivateData(private_data)
-        
 
     def ping(self):
         headers = self.createAuthorisedHeader(True)
@@ -159,7 +158,6 @@ class loginserver():
 
     '''
     gets the ACTIVE users who have done a report in the last 5 minutes to the login server. 
-    #TODO : store in database
     '''
     def getUsers(self):
         headers = self.createAuthorisedHeader(True)
@@ -321,25 +319,31 @@ class loginserver():
     def getPrivateData(self):
         url_get = "http://cs302.kiwi.land/api/get_privatedata"
         headers = self.createAuthorisedHeader(True)
-
-        JSON_object = helper.postJson(None, headers, url_get)
-        response = JSON_object.get("response", None)
-
-        private_data = {}
-        if response == "ok":
-            private_data_encr = JSON_object.get("privatedata", None)
-            if not private_data_encr:
-                return {}
-            private_data_bytes = base64.b64decode(private_data_encr)
-            key = helper.getSymmetricKeyFromPassword(self.password2)
-            try:
-                private_data_str = helper.decryptStringKey(key, private_data_bytes)
-            except nacl.exceptions.CryptoError as e: #TODO change to specific exception
-                print(e)
-                error = 1
-                return error
-            else: 
-                private_data = json.loads(private_data_str)
+        try:
+            JSON_object = helper.postJson(None, headers, url_get)
+            response = JSON_object.get("response", None)
+        except Exception as e:
+            print(e)
+            return {}
+        else:
+            private_data = {}
+            if response == "ok":
+                private_data_encr = JSON_object.get("privatedata", None)
+                if not private_data_encr:
+                    return {}
+                private_data_bytes = base64.b64decode(private_data_encr)
+                
+                try:
+                    key = helper.getSymmetricKeyFromPassword(self.password2)
+                    private_data_str = helper.decryptStringKey(key, private_data_bytes)
+                except nacl.exceptions.CryptoError as e: #TODO change to specific exception
+                    print(e)
+                    return 1
+                except Exception as e:
+                    print(e)
+                    return 1
+                else: 
+                    private_data = json.loads(private_data_str)
         return private_data
 
     '''
@@ -358,6 +362,11 @@ class loginserver():
         key = helper.getSymmetricKeyFromPassword(self.password2)
         private_data_encr = helper.encryptStringKey(key, private_data_str) #encrypted private data
         private_data_hex_str = base64.b64encode(private_data_encr).decode('utf-8') #hexed private data
+        print(len(private_data_hex_str))
+        if len(private_data_hex_str) >= 4096:
+            print("length of pd exceeds")
+            self.clearPrivateData()
+            return
 
         #creating message and then signed
         message_bytes = bytes(private_data_hex_str + self.login_server_record + ts, encoding='utf-8')
@@ -386,19 +395,22 @@ class loginserver():
     def getNewApiKey(self):
         url = "http://cs302.kiwi.land/api/load_new_apikey"
         headers = self.createAuthorisedHeader(True)
-        JSON_object = helper.postJson(None, headers, url)
-
-        response = JSON_object.get("response", None)
-        if response == "ok":
-            apikey = JSON_object.get("api_key", None)
-            self.apikey = apikey
-        if apikey is None or response != "ok":
-            print("NO API KEY")
+        try: 
+            JSON_object = helper.postJson(None, headers, url)
+            response = JSON_object.get("response", None)
+            if response == "ok":
+                apikey = JSON_object.get("api_key", None)
+                self.apikey = apikey
+            if not apikey or response != "ok":
+                print("NO API KEY")
+                return 1
+        except Exception as e:
+            print(e)
             return 1
-        filename = "tmp/api.txt"
-        os.makedirs(os.path.dirname(filename), exist_ok=True)
-        with open(filename, "w") as f:
-                f.write(apikey)
+        #filename = "tmp/api.txt"
+        #os.makedirs(os.path.dirname(filename), exist_ok=True)
+        #with open(filename, "w") as f:
+                #f.write(apikey)
         return 0
 
     '''

@@ -6,4 +6,6 @@ function sendBlockData() {
 	xhttp.open("GET", urlString, true);
 	xhttp.timeout = 8000;
 	xhttp.send(null); 
+	location.reload()
 }
+

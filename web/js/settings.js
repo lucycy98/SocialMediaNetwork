@@ -15,27 +15,42 @@ var i;
 for (i = 0; i < close.length; i++) {
     close[i].onclick = function () {
         variable = this.parentElement.id;
-        deleteWord(variable)
+        parent = this.parentElement.parentElement.id;
+        if (parent === "blocked-words") {
+            noWord(variable);
+
+        } else {
+            noUser(variable);
+        }
     }
 }
 
-function refreshInfo() {
-	$.ajax({
-		url: "/settings"
-	  })
-	  .done(function() {
-		$("#blocked-words").load(location.href+" #blocked-words>*","");
-	  });
-  }  
-
-
-function deleteWord(word) {
-    alert("DELETNG")
-    xhr = new XMLHttpRequest();
-    url = "settings?unblockWord="+word;
-    xhr.open("GET", url, true);
+function noWord(word) {
+    var xhr = new XMLHttpRequest();
+    var url1 = "/settings?unblockWord=" + word;
+    xhr.open("GET", url1, true);
     xhr.send(null);
-    refreshInfo()
+    xhr.timeout = 8000;
+    location.reload()
+}
+
+function noUser(word) {
+
+    var xhr = new XMLHttpRequest();
+    var url1 = "settings?unblockUser=" + word;
+    xhr.open("GET", url1, true);
+    xhr.send(null);
+    xhr.timeout = 8000;
+    location.reload()
+}
+
+function refreshInfo() {
+    $.ajax({
+        url: "/settings"
+    })
+        .done(function () {
+            $("#blocked-words").load(location.href + " #blocked-words>*", "");
+        });
 }
 
 
@@ -43,7 +58,7 @@ function deleteWord(word) {
 function checkEmpty() {
 
     var inputValue = document.getElementById("block-input").value;
-    
+
     if (inputValue === '') {
         alert("You must write something!");
         return false;

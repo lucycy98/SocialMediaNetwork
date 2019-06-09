@@ -42,11 +42,8 @@ class p2p():
             if user_address is None or user_status != "online":
                 continue
             url = "http://" + user_address + "/api/ping_check"
-            print(url)
-
             try:
                 JSON_object = helper.postJson(payload, headers, url)
-                print(JSON_object)
                 response = JSON_object.get("response", None)
                 if response == "ok":
                     print("broadcast successfully sent")
@@ -56,18 +53,14 @@ class p2p():
             except:
                 print("cannot ping this user!!!!")
                 database.makeUserOffline(username)
-    
-
-
-
-        
 
 
     def sendBroadcastMessage(self, message):
         headers = self.createAuthorisedHeader(True)
         print(headers)
         print(message)
-        loginserver_record = database.getUserInfo(self.username, "loginrecord")
+        ud = database.getUserHashes(self.username)
+        loginserver_record = ud.get("loginrecord")
         ts = str(time.time())
         message_bytes = bytes(loginserver_record+message+ts, encoding='utf-8')
         signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
@@ -82,8 +75,11 @@ class p2p():
             "sender_created_at": ts,
             "signature": signature_hex_str
         }
-
-        username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
+        try: 
+            username, pubkey, server_time, signature_str = helper.breakLoginRecord(loginserver_record)
+        except Exception as e:
+            print(e)
+            return 1
 
         isMeta =re.search("^!(M|m)eta:", message)
         if not isMeta:
@@ -103,7 +99,6 @@ class p2p():
             
             if user.get("username") == 'admin':
                 url = "http://cs302.kiwi.land/api/rx_broadcast"
-            print(url)
 
             try:
                 JSON_object = helper.postJson(payload, headers, url)
@@ -114,7 +109,7 @@ class p2p():
                 else:
                     print("response not OK")
             except:
-                print("FAILED TO BROADCAST!")
+                print("FAILED TO BROADCAST to url " + str(url))
     
     def sendPrivateMessage(self, message, send_user):
         headers = self.createAuthorisedHeader(True)
@@ -123,9 +118,14 @@ class p2p():
         user_address = user.get("address", None)
         user_pubkey = user.get("pubkey", None)
         user_status = user.get("status", None)
-        
-        encr_message = helper.encryptMessage(message, user_pubkey)
-        loginserver_record = database.getUserInfo(self.username, "loginrecord")        
+        try: 
+            encr_message = helper.encryptMessage(message, user_pubkey)
+        except Exception as e:
+            print(e)
+            print("failed to encrypt message")
+            return 1
+        ud = database.getUserHashes(self.username)
+        loginserver_record = ud.get("loginrecord")        
         ts = str(time.time())
         message_bytes = bytes(loginserver_record+user_pubkey+send_user+encr_message+ts, encoding='utf-8')
         signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
@@ -137,8 +137,10 @@ class p2p():
         except Exception as e: 
             print("failed to encrypt sent message.")
             print(e)
-        database.addsentMessages(self.username, send_user, self_encrypted_message, ts, "user") #maybe change to encrypted? nah
-
+            return 1
+        msg = database.addsentMessages(self.username, send_user, self_encrypted_message, ts, "user")
+        if msg["response"] == "error":
+            return 1
         
         payload = {
             "loginserver_record": loginserver_record,
@@ -148,77 +150,86 @@ class p2p():
             "sender_created_at": ts,
             "signature": signature_hex_str
         }
-
-        if user_address is None:
-            return 1
-
-        all_users = database.getAllUsers()
         
         if user_status == "online":
             user = database.getUserData(send_user)
-            all_users = [user]
-
-        for user in all_users:
             user_address = user.get("address", None)
             user_status = user.get("status", None)
-            if user_address is None or user_status != "online":
-                continue
             url = "http://" + user_address + "/api/rx_privatemessage"
-            if send_user == "admin":
-                url = "http://cs302.kiwi.land/api/rx_privatemessage"
             
             try:
                 JSON_object = helper.postJson(payload, headers, url)
                 response = JSON_object.get("response", None)
                 if response == "ok":
-                    print("pm sent successfully sent")
+                    print("pm sent successfully")
+                    return 0
                 else:
-                    print("response not OK")
+                    raise Exception("error sending private message")
             except Exception as e:
                 print("FAILED TO SEND MESAGE")
                 print(e)
+
+                all_users = database.getAllUsers()
+                #sending offline message.
+                for user in all_users:
+                    user_address = user.get("address", None)
+                    user_status = user.get("status", None)
+                    if user_address is None or user_status != "online":
+                        continue
+                    url = "http://" + user_address + "/api/rx_privatemessage"                    
+                    try:
+                        JSON_object = helper.postJson(payload, headers, url)
+                        response = JSON_object.get("response", None)
+                        if response == "ok":
+                            print("pm sent successfully sent")
+                        else:
+                            raise Exception("error sending private message")
+                    except Exception as e:
+                        print(e)
     
     def createGroupChatP2p(self, target_usernames):
         headers = self.createAuthorisedHeader(True)
         print("creating group chats")
-        error = 1
+        error = 0
         #generating symmetric keys to be stored
         key = helper.generateRandomSymmetricKey()
         key_str = key.hex()
-        print("original key is")
-        print(key)
-        helper.addToPrivateData(self.logserv, "prikeys", key_str) #not sure if you can add bytes here....TODO
+        try: 
+            helper.addToPrivateData(self.logserv, "prikeys", key_str)
+        except Exception as e:
+            print(e)
+            return 1
 
         #check to see if group exists already
         #TODO
 
         #create a group invite
-        loginserver_record = database.getUserInfo(self.username, "loginrecord")
-        groupkey_hash = helper.getShaHash(key)
-        print("group key hash is ")
-        print(groupkey_hash)
+        ud = database.getUserHashes(self.username)
+        loginserver_record = ud.get("loginrecord")
+        try: 
+            groupkey_hash = helper.getShaHash(key)
+        except Exception as e:
+            print(e)
+            return 1
+
         groupkey_hash_str = groupkey_hash.decode('utf-8')
         database.addGroupChatReceived(groupkey_hash_str, self.username)
 
-        encr = helper.getEncryptionKey(self.logserv, groupkey_hash)
-        print("encr is")
-        print(encr)
-        
+        #encr = helper.getEncryptionKey(self.logserv, groupkey_hash)
 
         for username in target_usernames:
-            database.addGroupChatReceived(groupkey_hash_str, username) #change TODO only add if successful.
+            
             user = database.getUserData(username)
             user_address = user.get("address", None)
             user_location = user.get("location", None)
             user_pubkey = user.get("pubkey", None)
-
-            encr_groupkey = helper.encryptMessage(key, user_pubkey)
+            try: 
+                encr_groupkey = helper.encryptMessage(key, user_pubkey)
+            except Exception as e:
+                print(e)
+                return 1
             ts = str(time.time())
 
-            print(loginserver_record)
-            print(groupkey_hash_str)
-            print(user_pubkey)
-            print(encr_groupkey)
             message_bytes = bytes(loginserver_record+groupkey_hash_str+user_pubkey+username+encr_groupkey+ts, encoding='utf-8')
             
             signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
@@ -245,13 +256,13 @@ class p2p():
                 response = JSON_object.get("response", None)
                 if response == "ok":
                     print("group invite sent successfully")
-                    error = 0
+                    database.addGroupChatReceived(groupkey_hash_str, username)
                 else:
                     print("response not OK")
             except Exception as e:
                 print("FAILED TO SEND!")
                 print(e)
-            error = 0 #TODO CHNAGE THIS IS JUST FOR TETSING
+                error = 1
         return error, groupkey_hash_str
     
     def sendGroupMessage(self, target_group_hash, message):
@@ -264,15 +275,20 @@ class p2p():
         target_group_bytes = bytes(target_group_hash, encoding='utf-8')
         key = helper.getEncryptionKey(self.logserv,target_group_bytes)
         
-        print("KEY IS")
         if not key:
             print("ERROR!!!!!!!!!!!!!!!1")
             print("ERROR IN SENDING MESSAGE")
             return 1
         
-        encr_message = helper.encryptStringKey(key, message).hex() #TODO change if hex is appropriate.
+        try: 
+            encr_message = helper.encryptStringKey(key, message).hex() #TODO change if hex is appropriate.
+        except Exception as e:
+            print(e)
+            return 1
+            
         #encr_message = helper.encryptMessage(message, user_pubkey)
-        loginserver_record = database.getUserInfo(self.username, "loginrecord")        
+        ud = database.getUserHashes(self.username)
+        loginserver_record = ud.get("loginrecord")       
         ts = str(time.time())
         message_bytes = bytes(loginserver_record+encr_message+ts, encoding='utf-8')
         signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
@@ -291,13 +307,13 @@ class p2p():
         except Exception as e: 
             print("failed to encrypt sent message.")
             print(e)
-        print("TRYING TO ADD SEND MESSAGE TO DATABASE.....")
-        database.addsentMessages(self.username, target_group_hash, self_encrypted_message, ts, "group")
+            return 1
+        
         print(target_group_hash)
 
 
         target_users = database.getGroupUsers(target_group_hash)
-        print(target_users)
+        database.addsentMessages(self.username, target_group_hash, self_encrypted_message, ts, "group")
 
         for tg in target_users:
             username = tg.get("username")
@@ -320,23 +336,7 @@ class p2p():
                     print("response not OK")
             except:
                 print("FAILED TO sent group message!")
-                
-    def retrieveBroadcasts(self):
-        all_broadcasts = database.getAllBroadcasts()
-        data = []
-        print(all_broadcasts)
-        for broadcast in all_broadcasts:
-            tup = {}
-            message = broadcast.get("message")
-            loginserver = broadcast.get("loginserver_record")
-            print(message)
-            print(loginserver)
-            print(type(loginserver))
-            tup["message"] = message
-            tup["username"] = "username"
-            data.append(tup)
-        JSON = {"data": data}
-        return JSON
+
 
     def retrieveOfflineData(self, since):
         headers = self.createAuthorisedHeader(True)
@@ -352,15 +352,14 @@ class p2p():
 
             try:
                 JSON_object = helper.postJson(None, headers, url)
-                print(JSON_object)
             except Exception as e:
-                print("FAILED TO sent group message!")
+                print("cannot retrieveOfflineData from " + str(url))
+                print(e)
             else:
-
                 response = JSON_object.get("response", None)
                 if response == "ok":
-                    broadcasts = JSON_object.get("broadcasts", None)
-                    private_messages = JSON_object.get("private_messages", None)
+                    broadcasts = JSON_object.get("broadcasts", [])
+                    private_messages = JSON_object.get("private_messages", [])
                     for broadcast in broadcasts:
                         loginserver_record = broadcast.get("loginserver_record", None)
                         if not loginserver_record:

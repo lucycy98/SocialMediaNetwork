@@ -53,15 +53,15 @@ class MainApp(object):
                 logserv.status='busy'
             elif status == 'away':
                 logserv.status='away'
-            #dont set anything else.
 
             if filterVal == "favourite":
                 all_broadcasts = database.getFavBroadcasts(username)
             elif filterVal == "safe":
-                pass
+                all_broadcasts = database.getAllBroadcasts()
             else:
                 all_broadcasts = database.getAllBroadcasts()
                 filterVal = "recent"
+
             if not all_broadcasts:
                 all_broadcasts = []
             data = []
@@ -154,6 +154,7 @@ class MainApp(object):
     
     @cherrypy.expose
     def settings(self, blockWord=None, unblockWord=None, blockUser=None, unblockUser=None):
+        print("called settings")
         allusers = database.getAllUsers()
 
         logserv = cherrypy.session.get("logserv", None)
@@ -251,11 +252,20 @@ class MainApp(object):
                             message["username"] == 'invalid user'
 
                         target_group_bytes = bytes(groupname, encoding='utf-8')
-                        key = helper.getEncryptionKey(logserv, target_group_bytes)
+                        try: 
+                            key = helper.getEncryptionKey(logserv, target_group_bytes)
+                        except Exception as e:
+                            print(e)
+                            key = None
+
 
                         #dex hexing message 
-                        bytes_message = bytes.fromhex(encr_message)
-                        decr_message = helper.decryptStringKey(key, bytes_message)
+                        try: 
+                            bytes_message = bytes.fromhex(encr_message)
+                            decr_message = helper.decryptStringKey(key, bytes_message)
+                        except Exception as e:
+                            print(e)
+                            decr_message = None
                        
                     else:
                         decr_message = helper.decryptMessage(encr_message, signing_key)
@@ -297,13 +307,13 @@ class MainApp(object):
         logserv = loginserver.loginserver(username, password, password2)
         error = logserv.getNewApiKey()
         if error > 0:
+            cherrypy.lib.sessions.expire()
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
-
-        database.checkUsernamePassword(username, password)
+        phash = helper.getShaHash(password)
+        database.checkUsernamePassword(username, phash)
         success = logserv.getSigningKey()
         if success > 0:
-            cherrypy.session.expire()
-            print("testing error") #todo: deal with errors
+            cherrypy.lib.sessions.expire()
             raise cherrypy.HTTPRedirect('/login?bad_attempt=1')
         peer = p2p.p2p(username, password, logserv.signing_key, logserv.apikey, logserv)
         cherrypy.session['username'] = username
@@ -311,8 +321,12 @@ class MainApp(object):
         cherrypy.session["logserv"] = logserv
         cherrypy.session["p2p"] = peer
 
+
         data = database.getUserData(username)
-        since = str(data.get("lastReport"))
+        if not data:
+            since = str(time.time() - 1000)
+        else:
+            since =str(data.get("lastReport"))
 
         threadReport = loginserver.MyThread(logserv, peer)
         cherrypy.session["thread"] = threadReport
@@ -360,7 +374,41 @@ class MainApp(object):
             message_thread = threading.Thread(target=p2p.sendBroadcastMessage, args=(message,))
             message_thread.start()
         raise cherrypy.HTTPRedirect('/index')
+
     
+    @cherrypy.expose
+    def favouriteBroadcast(self, signature):       
+        p2p = cherrypy.session.get("p2p", None)
+        logserv = cherrypy.session.get("logserv", None)
+
+        if not p2p or not signature or not logserv:
+            #pass
+            cherrypy.response.status = 400
+        else:
+            database.addFavBroadcast(cherrypy.session["username"], signature)
+            pd_thread = threading.Thread(target=helper.addToPrivateData, args=(logserv, "favourite_message_signatures", signature))
+            pd_thread.start()
+            #helper.addToPrivateData(logserv, "favourite_message_signatures", signature)
+            message = "!Meta:favourite_broadcast:" + signature
+            bc_thread = threading.Thread(target=p2p.sendBroadcastMessage, args=(message,))
+            bc_thread.start()
+    
+    @cherrypy.expose
+    def blockBroadcast(self, signature):
+        p2p = cherrypy.session.get("p2p", None)
+        logserv = cherrypy.session.get("logserv", None)
+
+        if not p2p or not signature or not logserv:
+            cherrypy.response.status = 400
+        else:
+            database.addBlockedBroadcast(cherrypy.session["username"], signature)
+            pd_thread = threading.Thread(target=helper.addToPrivateData, args=(logserv, "blocked_message_signatures", signature))
+            pd_thread.start()
+            #helper.addToPrivateData(logserv, "blocked_message_signatures", signature)
+            message = "!Meta:block_broadcast:" + signature
+            bc_thread = threading.Thread(target=p2p.sendBroadcastMessage, args=(message,))
+            bc_thread.start()
+
     @cherrypy.expose
     def blockUser(self, username):
         p2p = cherrypy.session.get("p2p", None)
@@ -370,45 +418,19 @@ class MainApp(object):
             pass
         else:
             database.addBlockedUser(cherrypy.session["username"], username)
-            helper.addToPrivateData(logserv, "blocked_usernames", username)
+            pd_thread = threading.Thread(target=helper.addToPrivateData, args=(logserv, "blocked_usernames", username))
+            pd_thread.start()
+            #helper.addToPrivateData(logserv, "blocked_message_signatures", signature)
             message = "!Meta:block_username:" + username
-            p2p.sendBroadcastMessage(message)
-            raise cherrypy.HTTPRedirect('/index')
-    
-    @cherrypy.expose
-    def favouriteBroadcast(self, signature):       
-        p2p = cherrypy.session.get("p2p", None)
-        logserv = cherrypy.session.get("logserv", None)
-
-        if not p2p or not signature:
-            pass
-        else:
-            database.addFavBroadcast(cherrypy.session["username"], signature)
-            helper.addToPrivateData(logserv, "favourite_message_signatures", signature)
-            message = "!Meta:favourite_broadcast:" + signature
-            p2p.sendBroadcastMessage(message)
-            raise cherrypy.HTTPRedirect('/index')
-    
-    @cherrypy.expose
-    def blockBroadcast(self, signature):
-        p2p = cherrypy.session.get("p2p", None)
-        logserv = cherrypy.session.get("logserv", None)
-
-        if not p2p or not signature or not logserv:
-            pass
-        else:
-            database.addBlockedBroadcast(cherrypy.session["username"], signature)
-            helper.addToPrivateData(logserv, "blocked_message_signatures", signature)
-            message = "!Meta:block_broadcast:" + signature
-            p2p.sendBroadcastMessage(message)
-            raise cherrypy.HTTPRedirect('/index')
+            bc_thread = threading.Thread(target=p2p.sendBroadcastMessage, args=(message,))
+            bc_thread.start()
     
     @cherrypy.expose
     def testRecieveMessage(self, message=None):
         p2p = cherrypy.session.get("p2p", None)
 
         if p2p is None or message is None:
-            pass
+            cherrypy.response.status = 400
         else:
             p2p.testRecieveMessage(message)
         raise cherrypy.HTTPRedirect('/index')
@@ -457,7 +479,7 @@ class MainApp(object):
             pass
         else:
             print(target_user)
-            p2p.sendPrivateMessage(message, target_user)
+            success = p2p.sendPrivateMessage(message, target_user)
         raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=target_user)) 
     
     @cherrypy.expose

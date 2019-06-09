@@ -26,10 +26,7 @@ class MainApp(object):
     @cherrypy.expose
     def default(self, *args, **kwargs):
         """The default page, given when we don't recognise where the request is for."""
-        #Page = startHTML + "I don't know where you're trying to go, so have a 404 Error."
-        cherrypy.response.status = 404
-        Page = open("static/error.html")
-        return Page
+        raise cherrypy.NotFound()
 
     #recieving messages from thers. 
     @cherrypy.expose
@@ -60,13 +57,16 @@ class MainApp(object):
 
                 isMeta = re.search("^!Meta:(\w+):(\w+)", message)
                 if not isMeta:
-                    database.addBroadCast(loginserver_record, message, sender_created_at, signature, username, 'false')
+                    response = database.addBroadCast(loginserver_record, message, sender_created_at, signature, username, 'false')
                 else:
-                    database.addBroadCast(loginserver_record, message, sender_created_at, signature, username, 'true')                    
+                    response = database.addBroadCast(loginserver_record, message, sender_created_at, signature, username, 'true')                    
                     key = isMeta.group(1)
                     val = isMeta.group(2)
-                    helper.addMetaData(key,val,username)
-                    
+                    if response.get("response", None) == "ok":
+                        helper.addMetaData(key,val,username)
+                success = response.get("response", "error")
+                if success == 'error':
+                    error = "failed to add to database"
         response = helper.generateResponseJSON(error)
         return response
     
@@ -128,7 +128,10 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
-                database.addReceivedMessage(target_username, target_pubkey, encr_message, sender_created_at, encr_message, username, loginserver_record, "false")
+                r = database.addReceivedMessage(target_username, target_pubkey, encr_message, sender_created_at, encr_message, username, loginserver_record, "false")
+                success = r.get("response", "error")
+                if success == 'error':
+                    error = "failed to add to database"
         response = helper.generateResponseJSON(error)
         return response
     
@@ -162,26 +165,12 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
-                database.addGroupKey(target_username, encr_groupkey) #adding the group key.
-                database.addGroupChatReceived(groupkey_hash, target_username)
+                r = database.addGroupKey(target_username, encr_groupkey) #adding the group key.
+                r = database.addGroupChatReceived(groupkey_hash, target_username)
+                success = r.get("response", "error")
+                if success == 'error':
+                    error = "failed to add to database"
 
-                '''
-                username = cherrypy.session.get("username", None)
-                if target_username == username:
-                    logserv = cherrypy.session.get("logserv", None)
-                    print(logserv)
-                    try:
-                        decrypted_groupkey = helper.decryptMessage(encr_groupkey, logserv.signing_key)
-                        print(decrypted_groupkey)
-                        print("decrypted group key is")
-                        groupkey_str = decrypted_groupkey.hex()
-                        #decrypted_groupkey = helper.decryptStringKey(target_pubkey, encr_groupkey)
-                    except Exception as e:
-                        print(e)
-                    else:
-                        helper.addToPrivateData(logserv, "prikeys", groupkey_str) #not sure if you can add bytes here....TODO
-                #TODO update keys. 
-                '''
         response = helper.generateResponseJSON(error)
         return response
 
@@ -213,7 +202,10 @@ class MainApp(object):
             else:
                 print("group message is")
                 print(group_message)
-                database.addGroupMessage(groupkey_hash, username, group_message, sender_created_at, 'false')
+                r = database.addGroupMessage(groupkey_hash, username, group_message, sender_created_at, 'false')
+                success = r.get("response", "error")
+                if success == 'error':
+                    error = "failed to add to database"
         response = helper.generateResponseJSON(error)
         return response
     

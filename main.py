@@ -16,7 +16,7 @@ import server
 import externalapis
 
 LISTEN_IP = "0.0.0.0"
-LISTEN_PORT = 9163
+LISTEN_PORT = 1991
 
 
 def runMainApp():

@@ -16,7 +16,7 @@ import server
 import externalapis
 
 LISTEN_IP = "0.0.0.0"
-LISTEN_PORT = 10212
+LISTEN_PORT = 10338
 
 
 def runMainApp():
@@ -28,18 +28,9 @@ def runMainApp():
             'tools.encode.encoding': 'utf-8',
             'tools.sessions.on': True,
             'tools.sessions.timeout': 60 * 1,  # timeout is in minutes, * 60 to get hours
-
-            # The default session backend is in RAM. Other options are 'file',
-            # 'postgres', 'memcached'. For example, uncomment:
-            # 'tools.sessions.storage_type': 'file',
-            # 'tools.sessions.storage_path': '/tmp/mysessions',
         },
 
         #configuration for the static assets directory
-        '/static': {
-            'tools.staticdir.on': True,
-            'tools.staticdir.dir': 'static',
-        },
         '/images': {
             'tools.staticdir.on': True,
             'tools.staticdir.dir': os.path.join(os.getcwd(), 'web/images')
@@ -81,7 +72,9 @@ def runMainApp():
     #cherrypy.tools.auth = cherrypy.Tool('before_handler', auth.check_auth, 99)
 
     # Start the web server
+    
     cherrypy.engine.start()
+
 
     # And stop doing anything else. Let the web server take over.
     cherrypy.engine.block()
@@ -89,4 +82,6 @@ def runMainApp():
 
 #Run the function to start everything
 if __name__ == '__main__':
+ 
     runMainApp()
+

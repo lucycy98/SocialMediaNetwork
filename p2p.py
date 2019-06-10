@@ -56,7 +56,7 @@ class p2p():
 
 
     def sendBroadcastMessage(self, message):
-        headers = self.createAuthorisedHeader(True)
+        headers = self.createAuthorisedHeader(False)
         print(headers)
         print(message)
         ud = database.getUserHashes(self.username)
@@ -112,7 +112,7 @@ class p2p():
                 print("FAILED TO BROADCAST to url " + str(url))
     
     def sendPrivateMessage(self, message, send_user):
-        headers = self.createAuthorisedHeader(True)
+        headers = self.createAuthorisedHeader(False)
 
         user = database.getUserData(send_user)
         user_address = user.get("address", None)
@@ -188,7 +188,7 @@ class p2p():
                         print(e)
     
     def createGroupChatP2p(self, target_usernames):
-        headers = self.createAuthorisedHeader(True)
+        headers = self.createAuthorisedHeader(False)
         print("creating group chats")
         error = 0
         #generating symmetric keys to be stored
@@ -266,7 +266,7 @@ class p2p():
         return error, groupkey_hash_str
     
     def sendGroupMessage(self, target_group_hash, message):
-        headers = self.createAuthorisedHeader(True)
+        headers = self.createAuthorisedHeader(False)
         print(headers)
         print(message)
         print("target group hash")
@@ -343,7 +343,7 @@ class p2p():
 
 
     def retrieveOfflineData(self, since):
-        headers = self.createAuthorisedHeader(True)
+        headers = self.createAuthorisedHeader(False)
 
         all_users = database.getAllUsers()
         for user in all_users:

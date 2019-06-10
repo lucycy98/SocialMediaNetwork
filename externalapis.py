@@ -13,6 +13,7 @@ import loginserver
 import helper
 import database
 import re
+import urllib.error
 
 class MainApp(object):
 
@@ -22,12 +23,20 @@ class MainApp(object):
                   'tools.sessions.on' : 'True',
                  }       
 
+    
+    
     # If they try somewhere we don't know, catch it here and send them to the right place.
-    @cherrypy.expose
+    @cherrypy.expose()
+    @cherrypy.tools.json_out()
+
     def default(self, *args, **kwargs):
         """The default page, given when we don't recognise where the request is for."""
-        raise cherrypy.NotFound()
+        print("DEFAULT MESSAGE")
+        code = 404
+        msg = "invalid endpoint"
 
+        return {"response": "error", "message": "404 error"}
+        
     #recieving messages from thers. 
     @cherrypy.expose
     @cherrypy.tools.json_in()

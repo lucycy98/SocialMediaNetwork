@@ -1,9 +1,11 @@
 {% extends 'web/base.html' %}
 
-{% block title %} Index {% endblock %}
+{% block title %} Message {% endblock %}
 {% block head %}
 {{ super() }}
 <link rel='stylesheet' href='css/messaging.css' />
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.4.1.js"
+    integrity="sha256-WpOohJOqMqqyKL9FccASB9O0KwACQJpFTUBLTYOVvVU=" crossorigin="anonymous"></script>
 {% endblock %}
 
 {% block body %}
@@ -17,87 +19,117 @@
         <!-- The Modal -->
         <div id="myModal" class="modal">
 
-        <!-- Modal content -->
-        <div class="modal-content">
+            <!-- Modal content -->
+            <div class="modal-content">
                 <span class="close">&times;</span>
-        <div class='cont'>
-            
-            <form>
-                <h3>Add participants to your group:<button class = 'buttons' id='groupchat-btn' type="button">Create</button></h3>
-                <p>Note: you can only message online users</p>
-                <br>
+                <div class='cont'>
 
-                <ul class=people-list id='group-list'>
-                    {% for username in onlineusers %}
+
+                    <h3>Add participants to your group:</h3>
+                    <button class='buttons' id='groupchat-btn'>Create</button>
+                    <p>Note: you can only message online users</p>
+                    <br>
+
+                    <ul class=people-list id='group-list'>
+                        {% for username in onlineusers %}
                         {% if onlineusers[username]  == 'online' %}
-                            <li><label><input type='checkbox' value='{{username}}' name='username'><span></span>{{username}}</label></li>
+                        <li><label><input type='checkbox' value='{{username}}'
+                                    name='username'><span></span>{{username}}</label></li>
                         {% endif %}
-                    {% endfor %}
+                        {% endfor %}
 
                     </ul>
-                
-            </form>
-        </div>
-        </div>
+
+
+                </div>
+            </div>
 
         </div>
         <ul class=team-list>
             {% if groupchats|length == 0 %}
-                You have no group chats. Make one with the plus button.
+            You have no group chats. Make one with the plus button.
             {% endif %}
             {% for groupchat in groupchats %}
-            <a href='?groupname={{groupchat["groupkey_hash"]}}'><li>{{ groupchat["groupkey_hash"] }}</li></a>
+            <a href='?groupname={{groupchat["groupkey_hash"]}}'>
+                <li>{{ groupchat["groupkey_hash"] }}</li>
+            </a>
             {% endfor %}
         </ul>
-        
+
         <b>Users</b>
         <ul id='all_users' class=team-list>
             {% for username in onlineusers %}
-                <a href='?name={{username}}'><li>{{ onlineusers[username] }} {{username}}</li></a>
+            <a href='?name={{username}}'>
+                <li>{{ onlineusers[username] }} {{username}}</li>
+            </a>
             {% endfor %}
-            
+
         </ul>
 
     </div>
     <div id="msgheader" class='header box'>
         {% if username %}
-            <a href='profile?name={{username}}'>{{ username }}</a>
+        <a href='profile?name={{username}}'>{{ username }}</a>
         {% elif groupname %}
-            {{ groupname }}
+        {{ groupname }}
         {% else %}
-            Message            
+        Message
         {% endif %}
     </div>
     <div class='messages box webkit-scrollbar webkit-scrollbar-thumb'>
         <ul id="pm" class='message-list'>
-            
+
             {% if messages|length == 0 and username %}
-                Start a conversation with {{ username }}
+            Start a conversation with {{ username }}
             {% elif messages|length == 0 and groupname %}
-                Start a conversation with {{ groupname }}
+            Start a conversation with {{ groupname }}
             {% elif messages|length == 0%}
-                Click on a user or group and start chatting!
+            Click on a user or group and start chatting!
             {% endif %}
 
             {% for messageObj in messages %}
-                {% if messageObj["sent"] == "sent" %}
-                    <li><div class='blue_box'><span>{{ messageObj["message"] }}</span></div></li>
-                    <li><div class='time-right'><span>{{ messageObj["time"] }}</span></div></li>
-                {% else %}
-                    {% if messageObj["username"] == "invalid user" %}
-                        <li><div class='green_box'><span><i>Message blocked</i></span></div></li>
-                        <li><div class='time-left'><span>{{ messageObj["time"] }}</span></div></li>
-                        <li><div class='time-left'><span>Blocked user</span></div></li>
-                    {% elif messageObj["message"] == 'invalid message' %}
-                        <li><div class='green_box'><span><i>This message contains blocked words</i></span></div></li>
-                        <li><div class='time-left'><span>{{ messageObj["time"] }}</span></div></li>
-                        <li><div class='time-left'><span><a href='profile?name={{messageObj["username"]}}'>{{ messageObj["username"] }}</a></span></div></li>
-                    {% else %}
-                        <li><div class='green_box'><span>{{ messageObj["message"] }}</span></div></li>
-                        <li><div class='time-left'><span>{{ messageObj["time"] }}</span></div></li>
-                        <li><div class='time-left'><span><a href='profile?name={{messageObj["username"]}}'>{{ messageObj["username"] }}</a></span></div></li>
-                    {% endif %}
-                {% endif %}
+            {% if messageObj["sent"] == "sent" %}
+            <li>
+                <div class='blue_box'><span>{{ messageObj["message"] }}</span></div>
+            </li>
+            <li>
+                <div class='time-right'><span>{{ messageObj["time"] }}</span></div>
+            </li>
+            {% else %}
+            {% if messageObj["username"] == "invalid user" %}
+            <li>
+                <div class='green_box'><span><i>Message blocked</i></span></div>
+            </li>
+            <li>
+                <div class='time-left'><span>{{ messageObj["time"] }}</span></div>
+            </li>
+            <li>
+                <div class='time-left'><span>Blocked user</span></div>
+            </li>
+            {% elif messageObj["message"] == 'invalid message' %}
+            <li>
+                <div class='green_box'><span><i>This message contains blocked words</i></span></div>
+            </li>
+            <li>
+                <div class='time-left'><span>{{ messageObj["time"] }}</span></div>
+            </li>
+            <li>
+                <div class='time-left'><span><a
+                            href='profile?name={{messageObj["username"]}}'>{{ messageObj["username"] }}</a></span></div>
+            </li>
+            {% else %}
+            <li>
+                <div class='green_box'><span>{{ messageObj["message"] }}</span></div>
+            </li>
+            <li>
+                <div class='time-left'><span>{{ messageObj["time"] }}</span></div>
+            </li>
+            <li>
+                <div class='time-left'><span><a
+                            href='profile?name={{messageObj["username"]}}'>{{ messageObj["username"] }}</a></span></div>
+            </li>
+            {% endif %}
+            {% endif %}
             {% endfor %}
         </ul>
     </div>
@@ -120,6 +152,6 @@
 </div>
 
 <script src="js/groupchat.js"></script>
-<script src="js/click.js"></script>
 <script src="js/list_users.js"></script>
+
 {% endblock %}

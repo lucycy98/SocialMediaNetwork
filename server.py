@@ -18,7 +18,7 @@ import cherrypy.process.plugins
 import threading
 
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-j2_env = Environment(loader=FileSystemLoader(THIS_DIR), trim_blocks=True)
+j2_env = Environment(loader=FileSystemLoader(THIS_DIR), trim_blocks=True, autoescape=True)
 
 class MainApp(object):
 
@@ -64,6 +64,9 @@ class MainApp(object):
                 logserv.status='busy'
             elif status == 'away':
                 logserv.status='away'
+            
+            if status: 
+                logserv.reportUser()
 
             if filterVal == "favourite":
                 all_broadcasts = database.getFavBroadcasts(username)
@@ -279,10 +282,13 @@ class MainApp(object):
                             decr_message = None
                        
                     else:
-                        decr_message = helper.decryptMessage(encr_message, signing_key)
-                        decr_message = decr_message.decode('utf-8')               
-
-                
+                        try: 
+                            decr_message = helper.decryptMessage(encr_message, signing_key)
+                            decr_message = decr_message.decode('utf-8')    
+                        except Exception as e:
+                            print(e)
+                            print("error decrypting message")
+                            decr_message = None           
                     if not decr_message:
                         print("ERROR")
                         decr_message = "ERROR DECRYPTING"

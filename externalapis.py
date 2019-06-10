@@ -55,7 +55,7 @@ class MainApp(object):
                 print(e)
             else:
 
-                isMeta = re.search("^!Meta:(\w+):(\w+)", message)
+                isMeta = re.search("^!Meta:(\w+):\[*?(\w+)\]*", message)
                 if not isMeta:
                     response = database.addBroadCast(loginserver_record, message, sender_created_at, signature, username, 'false')
                 else:
@@ -124,6 +124,7 @@ class MainApp(object):
             message = str(loginserver_record)+str(target_pubkey)+str(target_username)+str(encr_message)+str(sender_created_at)
             try: 
                 helper.verifyMessageSignature(message, pubkey, signature)
+                print(signature_str)
             except nacl.exceptions.BadSignatureError as e:
                 error = "bad signature error."
                 print(e)

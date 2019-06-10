@@ -273,7 +273,11 @@ class p2p():
         print(target_group_hash)
         print("")
         target_group_bytes = bytes(target_group_hash, encoding='utf-8')
-        key = helper.getEncryptionKey(self.logserv,target_group_bytes)
+        try:
+            key = helper.getEncryptionKey(self.logserv,target_group_bytes)
+        except Exception as e:
+            print(e)
+            return 1
         
         if not key:
             print("ERROR!!!!!!!!!!!!!!!1")

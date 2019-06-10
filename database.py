@@ -239,7 +239,7 @@ def addFavBroadcast(username, signature):
 def addGroupKey(username, key_str):
     conn, c = loadDatabase()
     try:
-        c.execute("INSERT INTO groupkeys ((username, groupkey_encr) VALUES(?,?)", (username, key_str))
+        c.execute("INSERT INTO groupkeys (username, groupkey_encr) VALUES(?,?)", (username, key_str))
         return {"response":"ok"}
     except Exception as e:
         print(e)
@@ -308,10 +308,10 @@ def getAllGroupChats(username):
 def addGroupChatReceived(groupkey_hash, username):
     conn, c = loadDatabase()
     try:
-        c.execute("SELECT * FROM groups WHERE groupkey_hash=? AND username=?",(username,groupkey_hash))
+        c.execute("SELECT * FROM groups WHERE groupkey_hash=? AND username=?",(groupkey_hash, username))
         result = c.fetchall()
         if len(result) == 0:
-            c.execute("INSERT INTO groups (groupkey_hash, username) VALUES(?, ?)",(username, groupkey_hash))
+            c.execute("INSERT INTO groups (groupkey_hash, username) VALUES(?, ?)",(groupkey_hash, username))
         return {"response":"ok"}
     except Exception as e:
         print(e)
@@ -356,8 +356,8 @@ def getGroupConversation(username, group_hash):
                     FROM groupMessages 
                     WHERE groupkey_hash=? AND send_user<>? AND meta='false'
                     ORDER BY sender_created_at ASC"""
-        print(query, (username, group_hash, group_hash, username))
-        c.execute(query)
+        print(query)
+        c.execute(query, (username, group_hash, group_hash, username))
         result = c.fetchall()
         data = resultToJSON(result, c)
         return data
@@ -429,7 +429,7 @@ def getAllMessages(since=None, checkMessages=None):
 def addReceivedMessage(target_username, target_pubkey, encrypted_message, timestamp , signature, their_username, loginrecord, meta):
     conn, c = loadDatabase()
     try:
-        c.execute("""INSERT INTO receivedMessages VALUES 
+        c.execute("""INSERT INTO receivedMessages 
         (target_username, target_pubkey, encrypted_message, sender_created_at, signature, sender_username, sent, loginserver_record, meta)
         VALUES (?,?,?,?,?,?,?,?,?)""", (target_username, target_pubkey, encrypted_message, timestamp, signature, their_username, "received", loginrecord, meta))
         return {"response":"ok"}

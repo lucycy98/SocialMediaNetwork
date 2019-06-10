@@ -247,6 +247,10 @@ class loginserver():
             print("public key and signature is valid.")
             return 0
         else:
+            print(JSON_object)
+            print(response)
+            print(signature)
+            print(pubkey_hex_str)
             print ("public key and or signature is invalid.")
             return 1
 
@@ -469,4 +473,4 @@ class MyThread(threading.Thread):
                 self.logserv.getUsers()
                 self.p2p.pingCheckUsers()
             finally:
-                time.sleep(200)
+                time.sleep(100)

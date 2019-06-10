@@ -10,6 +10,13 @@ from nacl import pwhash, secret, utils
 import nacl.hash
 from datetime import datetime
 
+'''
+this class contains helper methods used by other classes
+'''
+
+'''
+checks the database whether the username is blocked or not  
+''' 
 def checkValidUser(username, usernameToCheck):
     blockedUsers = database.getBlockedUser(username)
     for user in blockedUsers:
@@ -17,6 +24,10 @@ def checkValidUser(username, usernameToCheck):
             return False
     return True
 
+
+'''
+checks against db whether a message contains a blocked word  
+'''
 def checkValidMessage(username, message):
     blockedWords = database.getBlockedWords(username)
     for word in blockedWords:
@@ -25,6 +36,9 @@ def checkValidMessage(username, message):
             return False
     return True
 
+'''
+checks against db whether broadcast signature has been blocked by user  
+'''
 def checkValidBroadcast(username, signature):
     broadcasts = database.getBlockedBroadcasts(username)
     for broadcast in broadcasts:
@@ -32,6 +46,9 @@ def checkValidBroadcast(username, signature):
             return False
     return True
 
+'''
+checks against db whether bc has been blocked by anyone
+'''
 def checkValidBroadcastAll(signature):
     broadcasts = database.getAllBlockedBroadcasts()
     for broadcast in broadcasts:
@@ -53,14 +70,18 @@ def addMetaData(key,value,username):
     elif key == "block_pubkey":
         #TODO add pubkey ?????????
         print("someone added a pubkey")
-    
+
+'''
+used to post send a url request with headers and payload
+returns the response, if error: returns error
+'''
 def postJson(payload, headers, url):
 
     if payload is not None:
         payload = json.dumps(payload).encode('utf-8')
     try:
         req = urllib.request.Request(url, data=payload, headers=headers)
-        response = urllib.request.urlopen(req, timeout=10)
+        response = urllib.request.urlopen(req, timeout=3)
         data = response.read() # read the received bytes
         encoding = response.info().get_content_charset('utf-8') #load encoding if possible (default to utf-8)
         response.close()
@@ -71,6 +92,10 @@ def postJson(payload, headers, url):
         JSON_object = json.loads(data.decode(encoding))
         return JSON_object
 
+'''
+checks signature was signed with the right key and was not forged
+will raise an exception is forged
+'''
 def verifyMessageSignature(messageString, pubkey, signatureString):
     signature_bytes = bytes(signatureString, encoding='utf-8')
     message= bytes(messageString, encoding='utf-8')
@@ -79,6 +104,9 @@ def verifyMessageSignature(messageString, pubkey, signatureString):
     verify_key = nacl.signing.VerifyKey(pubkey_hex, encoder=nacl.encoding.HexEncoder)
     verify_key.verify(message_bytes_hex, signature_bytes, encoder=nacl.encoding.HexEncoder)
 
+'''
+breaks down login record  
+'''
 def breakLoginRecord(loginserver_record):
     login_info = loginserver_record.split(',')
     username = login_info[0]
@@ -87,6 +115,9 @@ def breakLoginRecord(loginserver_record):
     signature_str = login_info[3]
     return username, pubkey, server_time, signature_str
 
+'''
+    generates response for incoming api
+'''
 def generateResponseJSON(error):
     payload = {}
     if error == "ok":
@@ -109,6 +140,9 @@ def getShaHash(message):
     hash = nacl.hash.sha256(message, encoder=nacl.encoding.HexEncoder)
     return hash
 
+'''
+adss to private data in login server    
+'''
 def addToPrivateData(logserv, key, value):
     private_data = logserv.getPrivateData()
     values = private_data.get(key, None)
@@ -118,9 +152,11 @@ def addToPrivateData(logserv, key, value):
     private_data[key] = values
     logserv.addPrivateData(private_data)
 
+'''
+encrypts message using pubkey
+'''
 def encryptMessage(message, publickey_hex):
-    #publickey_hex contains the target publickey
-    #using the nacl.encoding.HexEncoder format
+
     verifykey = nacl.signing.VerifyKey(publickey_hex, encoder=nacl.encoding.HexEncoder)
     publickey = verifykey.to_curve25519_public_key()
     sealed_box = nacl.public.SealedBox(publickey)
@@ -130,10 +166,10 @@ def encryptMessage(message, publickey_hex):
     encrypted = sealed_box.encrypt(message_bytes, encoder=nacl.encoding.HexEncoder)
     message_encr = encrypted.decode('utf-8')
     return message_encr
-
+'''
+decrypts message using private key
+'''
 def decryptMessage(message, privatekey):
-    #publickey_hex contains the target publickey
-    #using the nacl.encoding.HexEncoder format 
     key = privatekey.to_curve25519_private_key()
     sealed_box = nacl.public.SealedBox(key)
     message_bytes = message
@@ -171,7 +207,6 @@ def encryptStringKey(key, input):
 '''
 takes in an encrypted messge, and returns a decryped version (string)
 '''
-#TODO: error message when the key cannot decrypt the message.
 def decryptStringKey(key, inputBytes):  
     if isinstance(inputBytes, str):
         inputBytes = bytes(inputBytes, encoding='utf-8')
@@ -188,9 +223,6 @@ def formatTime(unix):
     return dateobj
 
 def getEncryptionKey(logserv,groupkey_hash):
-    print("get encryption key")
-    print("group key hash is")
-    print(groupkey_hash)
     private_data = logserv.getPrivateData()
     prikeys = private_data.get("prikeys", None)
     for prikey_str in prikeys:

@@ -16,7 +16,7 @@ import server
 import externalapis
 
 LISTEN_IP = "0.0.0.0"
-LISTEN_PORT = 10338
+LISTEN_PORT = 11318
 
 
 def runMainApp():
@@ -47,13 +47,6 @@ def runMainApp():
             'tools.staticdir.on': True,
             'tools.staticdir.dir': os.path.join(os.getcwd(), 'web/img')
         }
-
-        #once a favicon is set up, the following code could be used to select it for cherrypy
-        #'/favicon.ico': {
-        #    'tools.staticfile.on': True,
-        #    'tools.staticfile.filename': os.getcwd() + '/static/favicon.ico',
-        #},
-
     }
 
     cherrypy.site = {
@@ -71,8 +64,7 @@ def runMainApp():
                             })
     #cherrypy.tools.auth = cherrypy.Tool('before_handler', auth.check_auth, 99)
 
-    # Start the web server
-    
+    # Start the web serve
     cherrypy.engine.start()
 
 
@@ -82,6 +74,5 @@ def runMainApp():
 
 #Run the function to start everything
 if __name__ == '__main__':
- 
     runMainApp()
 

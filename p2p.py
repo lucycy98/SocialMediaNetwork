@@ -14,6 +14,11 @@ import database
 import helper
 import re
 
+'''
+This class deals with sending other users in the network requests
+e.g ping checks, broadcasts, private/group chat messaging, offline retrieval etc
+''' 
+
 
 class p2p():
     def __init__(self, username, password, signing_key, api, logserv):
@@ -23,6 +28,10 @@ class p2p():
         self.signing_key = signing_key
         self.apikey = api
     
+    '''
+    sends all users that are "online" a ping check
+    if fails, then marks them as offline
+    ''' 
     def pingCheckUsers(self):
         headers = self.createAuthorisedHeader(False)
         ts = str(time.time())
@@ -46,7 +55,7 @@ class p2p():
                 JSON_object = helper.postJson(payload, headers, url)
                 response = JSON_object.get("response", None)
                 if response == "ok":
-                    print("broadcast successfully sent")
+                    print("ping check successful")
                 else:
                     print("ping check not ok")
                     database.makeUserOffline(username)
@@ -54,19 +63,19 @@ class p2p():
                 print("cannot ping this user!!!!")
                 database.makeUserOffline(username)
 
+    '''
+    sends a broadcast message to all users in the network
+    checks if message is meta message and stores in database accordingly
 
+    ''' 
     def sendBroadcastMessage(self, message):
         headers = self.createAuthorisedHeader(False)
-        print(headers)
-        print(message)
+  
         ud = database.getUserHashes(self.username)
         loginserver_record = ud.get("loginrecord")
         ts = str(time.time())
         message_bytes = bytes(loginserver_record+message+ts, encoding='utf-8')
         signed = self.signing_key.sign(message_bytes, encoder=nacl.encoding.HexEncoder)
-        print("signed")
-        print(signed.signature)
-        print(signed.message)
         signature_hex_str = signed.signature.decode('utf-8')
         
         payload = {
@@ -87,7 +96,6 @@ class p2p():
         else:
             database.addBroadCast(loginserver_record, message, ts, signature_hex_str, username, 'true')
 
-    
         all_users = database.getAllUsers()
 
         for user in all_users:
@@ -110,7 +118,14 @@ class p2p():
                     print("response not OK")
             except:
                 print("FAILED TO BROADCAST to url " + str(url))
-    
+    '''
+    deals with sending private messages
+    gets the end users public key for encryption of message
+    stores into db
+    encrypts own message with own public key for storage into db
+    checks if user is online, or response was successful
+    if not, then send to other users in network as offline messge.
+    ''' 
     def sendPrivateMessage(self, message, send_user):
         headers = self.createAuthorisedHeader(False)
 
@@ -186,7 +201,12 @@ class p2p():
                             raise Exception("error sending private message")
                     except Exception as e:
                         print(e)
-    
+    '''
+    method for creating group chats
+    generates a random symmetric key and adds to private data
+    gets shahash of key for group identifier
+    sends group invite to all members of the group
+    ''' 
     def createGroupChatP2p(self, target_usernames):
         headers = self.createAuthorisedHeader(False)
         print("creating group chats")
@@ -199,9 +219,6 @@ class p2p():
         except Exception as e:
             print(e)
             return 1
-
-        #check to see if group exists already
-        #TODO
 
         #create a group invite
         ud = database.getUserHashes(self.username)
@@ -264,14 +281,15 @@ class p2p():
                 print(e)
                 error = 1
         return error, groupkey_hash_str
-    
+
+    '''
+    sends group message for group identified by hash
+    gets encryption key from private data, from comparing sha hash results
+    encrypts message using key
+    composes message and sends + adds to database
+    ''' 
     def sendGroupMessage(self, target_group_hash, message):
         headers = self.createAuthorisedHeader(False)
-        print(headers)
-        print(message)
-        print("target group hash")
-        print(target_group_hash)
-        print("")
         target_group_bytes = bytes(target_group_hash, encoding='utf-8')
         try:
             key = helper.getEncryptionKey(self.logserv,target_group_bytes)
@@ -280,7 +298,6 @@ class p2p():
             return 1
         
         if not key:
-            print("ERROR!!!!!!!!!!!!!!!1")
             print("ERROR IN SENDING MESSAGE")
             return 1
         
@@ -315,7 +332,6 @@ class p2p():
         
         print(target_group_hash)
 
-
         target_users = database.getGroupUsers(target_group_hash)
         database.addsentMessages(self.username, target_group_hash, self_encrypted_message, ts, "group")
 
@@ -341,7 +357,10 @@ class p2p():
             except:
                 print("FAILED TO sent group message!")
 
-
+    '''
+    offline data is retrieved from all users in network
+    adds to database accordingly
+    ''' 
     def retrieveOfflineData(self, since):
         headers = self.createAuthorisedHeader(False)
 
@@ -418,20 +437,6 @@ class p2p():
                 'Content-Type' : 'application/json; charset=utf-8',
             }
         return headers
-    
-    #need to decrypt it first and THEN 
-    def testRecieveMessage(self, message):
-        target_username = 'lche982'
-        sender_username = 'admin' #after signing etc.
-        message = "test Message"
-        user = database.getUserData(target_username)
-        user_pubkey = user.get("pubkey", None)
-        loginrecord = user.get("loginserver_record", None)
-        encr_message = helper.encryptMessage(message, user_pubkey)
-        ts = str(time.time())
-        database.addReceivedMessage(target_username, user_pubkey, encr_message, ts, message, sender_username, loginrecord, 'false') #sending myself a message.
-        
-
             
 
     

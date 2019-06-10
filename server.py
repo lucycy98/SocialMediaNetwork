@@ -38,16 +38,11 @@ class MainApp(object):
         output = template.render(url_index='index')
         return output
     
-    # If they try somewhere we don't know, catch it here and send them to the right place.
-    @cherrypy.expose
-    def internal_error(self, *args, **kwargs):
-        """internal 500 error"""
-        cherrypy.response.status = 500
-        cherrypy.lib.sessions.expire()
-        template = j2_env.get_template('web/500.html')
-        output = template.render(url_index='login')
-        return output
-
+    '''
+    checks filter value for broadcast and status reported by user
+    updates database accordingly and passes in data via jinja
+    checks for blocked words/users
+    '''   
     @cherrypy.expose
     def index(self, filterVal=None, status=None):
         allusers = database.getAllUsers()
@@ -89,7 +84,7 @@ class MainApp(object):
                 validMessage = helper.checkValidMessage(username, message)
                 validUser = helper.checkValidUser(username, broadcastUser)
 
-                if filterVal == "safe": #if block, then block ALL broadcasts by everyone.
+                if filterVal == "safe": #if block, then block ALL broadcasts that are blocked by EVERYONE
                     validBroadcast = helper.checkValidBroadcastAll(sig)
                 else:
                     validBroadcast = helper.checkValidBroadcast(username, sig)
@@ -112,6 +107,11 @@ class MainApp(object):
             output = template.render(broadcasts=data, filter=filterVal, allusers=allusers)
         return output
     
+    '''
+    if no name param given, default to own user profile
+    applies filters similar to index
+    checks for blocked words/users
+    '''   
     @cherrypy.expose
     def profile(self, name=None, filterVal=None):
         allusers = database.getAllUsers()
@@ -166,6 +166,9 @@ class MainApp(object):
             output = template.render(profile=profile, broadcasts=broadcasts, isOwn=isOwn, allusers=allusers)
         return output
     
+    '''
+    blocks/unblocks users/words. updates database and UI
+    '''   
     @cherrypy.expose
     def settings(self, blockWord=None, unblockWord=None, blockUser=None, unblockUser=None):
         print("called settings")
@@ -194,6 +197,12 @@ class MainApp(object):
         
         return output
 
+    '''
+    displays messages or group message depending on param
+    checks if a new groupkey should be added to private data - updates database
+    decrypts messages from send and receiving end
+    checks for blocked words/users
+    '''   
     @cherrypy.expose
     def message(self, name=None, groupname=None):
 
@@ -239,11 +248,10 @@ class MainApp(object):
                             print("ERROR in decrypting group key.")
                             print(e)
                         else:
-                            helper.addToPrivateData(logserv, "prikeys", groupkey_str) #not sure if you can add bytes here....TODO
+                            helper.addToPrivateData(logserv, "prikeys", groupkey_str) #add group key to private data
                             database.deleteGroupKey(username, encr_groupkey)
 
                     messages = database.getGroupConversation(username, groupname)
-                    
                     isGroup = True
         
                 if messages is None:
@@ -254,7 +262,6 @@ class MainApp(object):
                     time = helper.formatTime(time)
                     message["time"] = time 
                     
-
                     encr_message = message["message"]
                     status = message["sent"]
                     decr_message = None
@@ -271,7 +278,6 @@ class MainApp(object):
                         except Exception as e:
                             print(e)
                             key = None
-
 
                         #dex hexing message 
                         try: 
@@ -303,7 +309,10 @@ class MainApp(object):
         output = template.render(username=name, messages=messages, onlineusers=data, groupchats=groupchats, groupname=groupname, allusers=users)
         return output
         
-        
+    '''
+    login page which provides a form to get to sign in (below)
+    user is redirected to page if authentication fails.
+    ''' 
     @cherrypy.expose
     def login(self, bad_attempt=None):
         #database.getConversation("lche982", "admin")
@@ -317,7 +326,14 @@ class MainApp(object):
 
     ################################################### INTERNAL API ####################################################
 
-    # LOGGING IN AND OUT
+    '''
+    classes are created here and stored in session variables
+    userdata stored in db
+    checks if user creds are ok (username and pword combo AND private data pword)
+    redirects to login if not ok
+    starts background reporting/ping check threads
+    retrieves offline messages/broadcasts
+    ''' 
     @cherrypy.expose
     def signin(self, username=None, password=None, password2=None):
         """Check their name and password and send them either to the main page, or back to the main login screen."""
@@ -338,7 +354,6 @@ class MainApp(object):
         cherrypy.session["logserv"] = logserv
         cherrypy.session["p2p"] = peer
 
-
         data = database.getUserData(username)
         if not data:
             since = str(time.time() - 1000)
@@ -351,36 +366,11 @@ class MainApp(object):
 
         offline_thread = threading.Thread(target=peer.retrieveOfflineData, args=(since,))
         offline_thread.start()
-        raise cherrypy.HTTPRedirect('/index')
-    
-    @cherrypy.expose
-    def checkpubkey(self):
-        """Check their name and password and send them either to the main page, or back to the main login screen."""
-        logserv = cherrypy.session.get("logserv", None)
-        if logserv is None:
-            pass
-        else:
-            logserv.testPublicKey()
-        raise cherrypy.HTTPRedirect('/index')    
-          
+        raise cherrypy.HTTPRedirect('/index')          
 
-    # LOGGING IN AND OUT
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    def listActiveUsers(self):
-        """Check their name and password and send them either to the main page, or back to the main login screen."""
-        logserv = cherrypy.session.get("logserv", None)
-        users = database.getAllUsers()
-        Page = ""
-        data = {}
-        for user in users:
-            username = user.get("username", None)
-            status = user.get("status", None)
-            if username is None or status is None:
-                continue
-            data[username]=status
-        return data
-
+    '''
+    function for sending broadcast message and creates thread for it
+    ''' 
     @cherrypy.expose
     def sendBroadcastMessage(self, message=None):
         p2p = cherrypy.session.get("p2p", None)
@@ -392,7 +382,10 @@ class MainApp(object):
             message_thread.start()
         raise cherrypy.HTTPRedirect('/index')
 
-    
+    '''
+    adds favourite broadcasts to db and private data 
+    sends meta messages as broadcast
+    ''' 
     @cherrypy.expose
     def favouriteBroadcast(self, signature):       
         p2p = cherrypy.session.get("p2p", None)
@@ -405,11 +398,14 @@ class MainApp(object):
             database.addFavBroadcast(cherrypy.session["username"], signature)
             pd_thread = threading.Thread(target=helper.addToPrivateData, args=(logserv, "favourite_message_signatures", signature))
             pd_thread.start()
-            #helper.addToPrivateData(logserv, "favourite_message_signatures", signature)
+            helper.addToPrivateData(logserv, "favourite_message_signatures", signature)
             message = "!Meta:favourite_broadcast:" + signature
             bc_thread = threading.Thread(target=p2p.sendBroadcastMessage, args=(message,))
             bc_thread.start()
     
+    '''
+    similar functionality as above but for blocking broadcasts
+    ''' 
     @cherrypy.expose
     def blockBroadcast(self, signature):
         p2p = cherrypy.session.get("p2p", None)
@@ -421,11 +417,15 @@ class MainApp(object):
             database.addBlockedBroadcast(cherrypy.session["username"], signature)
             pd_thread = threading.Thread(target=helper.addToPrivateData, args=(logserv, "blocked_message_signatures", signature))
             pd_thread.start()
-            #helper.addToPrivateData(logserv, "blocked_message_signatures", signature)
+            helper.addToPrivateData(logserv, "blocked_message_signatures", signature)
             message = "!Meta:block_broadcast:" + signature
             bc_thread = threading.Thread(target=p2p.sendBroadcastMessage, args=(message,))
             bc_thread.start()
 
+
+    '''
+    blocking user
+    ''' 
     @cherrypy.expose
     def blockUser(self, username):
         p2p = cherrypy.session.get("p2p", None)
@@ -437,58 +437,13 @@ class MainApp(object):
             database.addBlockedUser(cherrypy.session["username"], username)
             pd_thread = threading.Thread(target=helper.addToPrivateData, args=(logserv, "blocked_usernames", username))
             pd_thread.start()
-            #helper.addToPrivateData(logserv, "blocked_message_signatures", signature)
             message = "!Meta:block_username:" + username
             bc_thread = threading.Thread(target=p2p.sendBroadcastMessage, args=(message,))
             bc_thread.start()
-    
-    @cherrypy.expose
-    def testRecieveMessage(self, message=None):
-        p2p = cherrypy.session.get("p2p", None)
 
-        if p2p is None or message is None:
-            cherrypy.response.status = 400
-        else:
-            p2p.testRecieveMessage(message)
-        raise cherrypy.HTTPRedirect('/index')
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    def getBroadcasts(self, username=None):
-        all_broadcasts = database.getAllBroadcasts()
-        data = []
-        for broadcast in all_broadcasts:
-            tup = {}            
-            tup["message"] = broadcast.get("message")
-            tup["username"] = broadcast.get("username")
-            time = broadcast.get("sender_created_at")
-            tup["time"] = helper.formatTime(time)
-
-            data.append(tup)
-        JSON = {"data": data}
-
-        return JSON
-
-    @cherrypy.expose
-    @cherrypy.tools.json_out()
-    def getMessages(self, username=None):
-        my_username = cherrypy.session.get("username")
-        all_conversations = database.getUserConversation(my_username, username)
-        if all_conversations is None:
-            all_conversations = []
-        data = {"data":all_conversations}
-        return data
-
-    @cherrypy.expose
-    def updateLoginServerRecord(self):
-        logserv = cherrypy.session.get("logserv", None)
-        if logserv is None:
-            pass
-        else:
-            logserv.getLoginServerRecord()
-        raise cherrypy.HTTPRedirect('/index') 
-
-    
+    '''
+    send private message and redirects to message page
+    ''' 
     @cherrypy.expose
     def sendPrivateMessage(self, message, target_user):
         p2p = cherrypy.session.get("p2p", None)
@@ -499,6 +454,9 @@ class MainApp(object):
             success = p2p.sendPrivateMessage(message, target_user)
         raise cherrypy.HTTPRedirect('/message?name={a}'.format(a=target_user)) 
     
+    '''
+    send group message then redirect to group page
+    ''' 
     @cherrypy.expose
     def sendGroupMessage(self, message, groupname):
         p2p = cherrypy.session.get("p2p", None)
@@ -510,7 +468,10 @@ class MainApp(object):
             p2p.sendGroupMessage(groupname, message)
         raise cherrypy.HTTPRedirect('/message?groupname={a}'.format(a=groupname)) 
 
-
+    '''
+    create a group chat which takes in usernames in as a list
+    disregards if selected less than 2 users
+    ''' 
     @cherrypy.expose
     @cherrypy.tools.json_in()
     def createGroupChat(self):
@@ -529,12 +490,14 @@ class MainApp(object):
                 return
 
             error, groupkey_hash = p2p.createGroupChatP2p(names)
-            print("DONE")
             print(groupkey_hash)
-            #if error == 0: #invite sent to at least one person for every req
             raise cherrypy.HTTPRedirect('/message?groupname={a}'.format(a=groupkey_hash)) 
-        raise cherrypy.HTTPRedirect('/index')
-        
+    
+    '''
+    method for signing out
+    stops timed background threads
+    expires session and reports offline.
+    ''' 
     @cherrypy.expose
     def signout(self):
         """Logs the current user out, expires their session"""

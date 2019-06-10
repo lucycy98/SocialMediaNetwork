@@ -16,13 +16,18 @@ import socket
 import main
 import threading
 
+'''
+this class deals with interaction with the login server
+which includes authenticating users and reporting etc
+''' 
+
 class loginserver():
     def __init__(self, username, password, password2):
         self.username = username
         self.password = password
         self.signing_key = None
-        self.connection_address = "47.72.146.59:8080"
-        self.connection_location = "2"
+        self.connection_address = None
+        self.connection_location = None
         self.users = None
         self.apikey = None
         self.login_server_record = None
@@ -31,8 +36,8 @@ class loginserver():
         self.password2 = password2
         self.status = "online"
 
+    #temporary solution to clear private data except for private key when full
     def clearPrivateData(self):
-        print("cleaning priv data")
         private_data = self.getPrivateData()
         values = private_data.get("prikeys", None)
         if not values:
@@ -42,19 +47,10 @@ class loginserver():
         private_data["prikeys"] = values
         self.addPrivateData(private_data)
 
-    def ping(self):
-        headers = self.createAuthorisedHeader(True)
-        url = "http://cs302.kiwi.land/api/ping"
-        JSON_object = helper.postJson(None, headers, url)
-
-        response = JSON_object.get("response", None)
-        if response == "ok":
-            print("valid user name and password")
-            return 0
-        else:
-            message = JSON_object.get("message", None)
-            return message
-            
+        
+    '''
+    Gets the connection address and location of the user
+    '''        
     def getConnectionAddress(self):
         ip = urllib.request.urlopen('http://ipv4.icanhazip.com').read()
         publicip = ip.rstrip().decode('utf-8')
@@ -121,16 +117,13 @@ class loginserver():
     def getSigningKey(self):
         error = 0
         private_data = {}
-        private_data = self.getPrivateData()
-        print("private data is")
-        print(private_data)   
+        private_data = self.getPrivateData() 
         if private_data == 1:
             return 1 
         else:        
             prikeys = private_data.get("prikeys", None)
         
         if prikeys is None:
-            print("HEX KEY IS NONE")
             self.addPublicKey()
             error = self.testPublicKey()
             if error != 0:
@@ -138,8 +131,6 @@ class loginserver():
              #creating private data. 
             private_data["prikeys"] = []
             private_data["prikeys"].append(self.hex_key.decode('utf-8'))
-            print("private data is")
-            print(private_data)
             self.addPrivateData(private_data)
         else:
             hex_key = prikeys[0]
@@ -147,8 +138,6 @@ class loginserver():
             self.hex_key = hex_key
             error = self.testPublicKey()
         self.getLoginServerRecord()
-        print("login server is")
-        print(self.login_server_record)
         if error > 0:
             print("an error occured in getting a public key from either the private data or created.")
         return error 
@@ -166,14 +155,16 @@ class loginserver():
             self.users = JSON_object.get("users", None)
             if self.users is not None:
                 self.loadUsersIntoDatabase(self.users)
-          
-          
             return 0   
         else:
             return 1
     
-
+    '''
+    gets the last reported users from login server and adds them to database. 
+    if their username does not appear, make those users offline
+    '''   
     def loadUsersIntoDatabase(self, reported_users):
+        error = 0
         online_users = []
         for user in reported_users:
             username = user.get("username", None)
@@ -182,23 +173,21 @@ class loginserver():
 
             if not status:
                 status = "online"
-            database.updateUsersInfo(username, user.get("connection_address", None), user.get("connection_location", None), user.get("incoming_pubkey", None), user.get("connection_updated_at", None), status)
-
+            er = database.updateUsersInfo(username, user.get("connection_address", None), user.get("connection_location", None), user.get("incoming_pubkey", None), user.get("connection_updated_at", None), status)
+            if er.get("response", None) == "error":
+                error = 1
         all_users = database.getAllUsers()
 
         for user in all_users:
             username = user.get("username", None)
             if username is None: 
-                "USER IS NONE!!!!!!!!!!!!!!"
                 continue
             if username not in online_users:
-                database.makeUserOffline(username)    
-        #database.printDatabase()
-
+                database.makeUserOffline(username)
+        return error
 
     '''
     gets the ACTIVE users who have done a report in the last 5 minutes to the login server. 
-    #TODO : update database
     '''
     def checkPublicKey(self, pubkey_str):
         headers = self.createAuthorisedHeader(True)
@@ -215,7 +204,7 @@ class loginserver():
 
     '''
     tests whether the user has provided a valid public key associated 
-    with the account. if there is an error
+    with the account.
     '''
     def testPublicKey(self):
         url = "http://cs302.kiwi.land/api/ping"
@@ -340,7 +329,7 @@ class loginserver():
                 except nacl.exceptions.CryptoError as e:
                     print(e)
                     return 1
-                except Exception as e: #TODO handle better
+                except Exception as e:
                     print(e)
                     return 1
                 else: 
@@ -459,13 +448,13 @@ class MyThread(threading.Thread):
         self.p2p = peer
 
     def stop(self):
-        print("stopping thread")
         self._stop.set()
 
     def stopped(self):
         print(self._stop.isSet())
         return self._stop.isSet()
 
+    #periodically report the user, update database and ping check online users.
     def run(self):
         while not self.stopped():
             try:

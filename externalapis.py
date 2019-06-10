@@ -15,6 +15,10 @@ import database
 import re
 import urllib.error
 
+'''
+this class deals with incoming apis handled by cherrypy
+in general, it validates the signature   
+''' 
 class MainApp(object):
 
     #CherryPy Configuration
@@ -28,16 +32,19 @@ class MainApp(object):
     # If they try somewhere we don't know, catch it here and send them to the right place.
     @cherrypy.expose()
     @cherrypy.tools.json_out()
-
     def default(self, *args, **kwargs):
         """The default page, given when we don't recognise where the request is for."""
         print("DEFAULT MESSAGE")
         code = 404
         msg = "invalid endpoint"
-
-        return {"response": "error", "message": "404 error"}
+        return {"response": "error", "message": msg }
         
-    #recieving messages from thers. 
+    '''
+    for broadcasting
+    verifies signature of message
+    updates db if valid
+    composes error message if not
+    ''' 
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
@@ -63,7 +70,6 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
-
                 isMeta = re.search("^!Meta:(\w+):\[*?(\w+)\]*", message)
                 if not isMeta:
                     response = database.addBroadCast(loginserver_record, message, sender_created_at, signature, username, 'false')
@@ -79,7 +85,9 @@ class MainApp(object):
         response = helper.generateResponseJSON(error)
         return response
     
-    #recieving messages from thers. 
+    '''
+    implements ping check as illsutrated by protocol
+    '''  
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
@@ -109,7 +117,11 @@ class MainApp(object):
             response["my_active_users"] = users
         return response
 
-    #recieving private messages
+    '''
+    receiving private messages
+    verifies signature
+    if valid, add to database
+    ''' 
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
@@ -145,7 +157,11 @@ class MainApp(object):
         response = helper.generateResponseJSON(error)
         return response
     
-    #recieving groupinvites
+    '''
+    accepts group invites
+    verifies message signature
+    adds goup key and message to database
+    ''' 
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
@@ -161,8 +177,6 @@ class MainApp(object):
         sender_created_at = payload.get("sender_created_at", None)
         signature = payload.get("signature", None)
         target_username = payload.get("target_username", None)
-        print("TARGET USERNAME IS")
-        print(target_username)
 
         if not loginserver_record or not target_pubkey or not groupkey_hash or not encr_groupkey or not signature or not sender_created_at:
             error = "missing parameters in request"
@@ -184,7 +198,9 @@ class MainApp(object):
         response = helper.generateResponseJSON(error)
         return response
 
-    #recieving private messages
+    '''
+    receving group messages
+    ''' 
     @cherrypy.expose
     @cherrypy.tools.json_in()
     @cherrypy.tools.json_out()
@@ -210,8 +226,6 @@ class MainApp(object):
                 error = "bad signature error."
                 print(e)
             else:
-                print("group message is")
-                print(group_message)
                 r = database.addGroupMessage(groupkey_hash, username, group_message, sender_created_at, 'false')
                 success = r.get("response", "error")
                 if success == 'error':
@@ -219,7 +233,10 @@ class MainApp(object):
         response = helper.generateResponseJSON(error)
         return response
     
-    #recieving private messages
+    '''
+    implements check messages
+    returns all broadcasts and private messages db already has
+    ''' 
     @cherrypy.expose
     @cherrypy.tools.json_out()
     def rx_checkmessages(self, since=None):
